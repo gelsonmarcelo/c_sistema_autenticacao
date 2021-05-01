@@ -4,20 +4,36 @@
 #include <ctype.h>
 #include <locale.h>
 
+/**
+ * Função para verificar se a senha cumpre com a política de senhas 
+ */
 int validaSenha(char *senha)
 {
-    int contAlfabetico;
     printf("\nSua senha está sendo analisada de acordo com a política de criação de senhas...\n");
+    //Contadores dos tipos de caracteres
+    int contLetras = 0, contNumeros = 0, contEspeciais = 0;
 
+    //Loop para passar pelos caracteres da senha
     for (int i = 0; i < strlen(senha); i++)
     {
-        if(isalpha(senha[i])){
-            printf("\n%c é alpha", senha[i]);
+        //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é alfabético
+        if(ispunct(senha[i])){
+            printf("\n%c é Especial.", senha[i]);
+            contEspeciais++;
+        }else if(isalpha(senha[i])){
+            printf("\n%c é Alfabético.", senha[i]);
+            contLetras++;
+        }else if(isdigit(senha[i])){
+            printf("\n%c é Numérico.", senha[i]);
+            contNumeros++;
+        }else{
+            printf("\n%c caractere indefinido.", senha[i]);
         }
     }
     
+    printf("\nValidação da senha finalizada...\n");
 
-    return 1;
+    return 0;
 }
 
 int main()
