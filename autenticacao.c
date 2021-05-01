@@ -17,20 +17,24 @@ int validaSenha(char *senha)
     for (int i = 0; i < strlen(senha); i++)
     {
         //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é alfabético
-        if(ispunct(senha[i])){
-            printf("\n%c é Especial.", senha[i]);
-            contEspeciais++;
-        }else if(isalpha(senha[i])){
+        if (isalpha(senha[i]))
+        {
             printf("\n%c é Alfabético.", senha[i]);
             contLetras++;
-        }else if(isdigit(senha[i])){
+        }
+        //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é um digito
+        else if (isdigit(senha[i]))
+        {
             printf("\n%c é Numérico.", senha[i]);
             contNumeros++;
-        }else{
-            printf("\n%c caractere indefinido.", senha[i]);
+        }
+        //Senão é um caractere especial ou outro tipo
+        else
+        {
+            printf("\n> | %c | é um caractere especial/branco.", senha[i]);
         }
     }
-    
+
     printf("\nValidação da senha finalizada...\n");
 
     return 0;
@@ -67,7 +71,7 @@ int main()
         switch (op)
         {
         case 1:
-         printf("\n*********************************************************************************\n_________________________________________________________________________________\n");
+            printf("\n*********************************************************************************\n_________________________________________________________________________________\n");
             printf("\n\t\t\t>> Login <<\n\n");
             printf("\n*********************************************************************************\n_________________________________________________________________________________\n");
             printf("Informe seu login:\n");
@@ -82,12 +86,14 @@ int main()
             printf("> Para começar, informe seu primeiro nome:\n_");
             scanf("%s", &nome);
             printf("> Agora, informe seu sobrenome:\n_");
-            scanf("%s", &sobrenome);
+            setbuf(stdin, NULL);
+            scanf("%[^\n]s", &sobrenome);
             printf("> Informe seu e-mail:\n_");
             scanf("%s", &email);
 
             printf("> Digite uma senha:\n_");
-            scanf("%s", &senha);
+            setbuf(stdin, NULL);
+            scanf("%[^\n]s", &senha);
 
             system("cls || clear");
 
@@ -97,7 +103,7 @@ int main()
             }
             else
             {
-                printf("\nSenha horrível vc escolheu! Não cadastrado!");
+                printf("\nA senha escolhida não atende à política de senhas do sistema!\nUsuário não cadastrado!");
             }
 
             printf("\nSeu nome completo é %s %s!\nSua senha é '%s'.\n", nome, sobrenome, senha);
