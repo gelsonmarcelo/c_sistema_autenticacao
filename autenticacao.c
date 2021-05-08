@@ -20,6 +20,37 @@
 **/
 
 /**
+ * Função para verificar se o identificador cumpre com a política
+ */
+int validaIdentificador(char *id, char *nome, char *sobrenome, char *email)
+{
+    printf("\nSeu identificador está sendo analisada de acordo com a política de criação de identificadores...\n");
+
+    //Verifica tamanho do identificador
+    if (strlen(id) < 5 || strlen(id) > 15)
+    {
+        printf("\n# IDENTIFICADOR INVÁLIDO - Não contém tamanho permitido (mínimo 5 e máximo 15)\n");
+        return 0;
+    }
+
+    //Loop para passar pelos caracteres do identificador
+    for (int i = 0; i < strlen(id); i++)
+    {
+        if (isalpha(id[i]))
+        {
+            printf("\n%c é Alfabético.", id[i]);
+        }else if(id[i] == '.'){
+            printf("\n%c é Ponto.", id[i]);
+        }else{
+            printf("\n# IDENTIFICADOR INVÁLIDO - Contém caracteres não permitidos\n");
+        }
+
+        if(strcmp(id, nome) == 0){
+
+        }
+    }
+}
+/**
  * Função para verificar se a senha cumpre com a política de senhas 
  */
 int validaSenha(char *senha)
@@ -56,15 +87,17 @@ int validaSenha(char *senha)
         {
             printf("\n%c é Numérico.", senha[i]);
             contNumeros++;
-            
+
             //Verifica se a senha contém números ordenados em sequência (ascendente ou descendente)
-            if(((senha[i]-'0')+1 == senha[i+1]-'0' && (senha[i]-'0')+2 == senha[i+2]-'0') || ((senha[i]-'1') == senha[i+1]-'0' && (senha[i]-'2') == senha[i+2]-'0')){
+            if (((senha[i] - '0') + 1 == senha[i + 1] - '0' && (senha[i] - '0') + 2 == senha[i + 2] - '0') || ((senha[i] - '1') == senha[i + 1] - '0' && (senha[i] - '2') == senha[i + 2] - '0'))
+            {
                 printf("\n# SENHA INVÁLIDA - | %c | faz parte de números ordenados em sequência\n", senha[i]);
                 return 0;
             }
 
             //Verifica se a senha contém números repetidos em sequência
-            if(senha[i] == senha[i+1]){
+            if (senha[i] == senha[i + 1])
+            {
                 printf("\n# SENHA INVÁLIDA - | %c | faz parte de números repetidos em sequência\n", senha[i]);
                 return 0;
             }
@@ -75,7 +108,8 @@ int validaSenha(char *senha)
             printf("\n> | %c | é um caractere especial/espaço.", senha[i]);
             contEspeciais++;
         }
-        else{
+        else
+        {
             printf("\n# SENHA INVÁLIDA - Sua senha contém caracteres que nao são nem alfanuméricos nem especiais ou espaço.");
             printf("\n# Verifique a digitação e tente novamente.\n# Caracteres permitidos:");
             printf("\n#\tEspeciais: ! \" # $ %% & ' ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ _ ` { | } ~");
@@ -84,25 +118,29 @@ int validaSenha(char *senha)
             return 0;
         }
 
-    }//Fim do for que passa pela senha
+    } //Fim do for que passa pela senha
 
     //Valida a quantidade de caracteres especiais
-    if(contEspeciais < 2){
+    if (contEspeciais < 2)
+    {
         printf("\n# SENHA INVÁLIDA - não contém caracteres especiais suficientes\n");
         return 0;
     }
     //Verifica se contém números e letras
-    if((contMinusculas+contMaiusculas) == 0 || contNumeros == 0){
+    if ((contMinusculas + contMaiusculas) == 0 || contNumeros == 0)
+    {
         printf("\n# SENHA INVÁLIDA - não contém letras e números\n");
         return 0;
     }
     //Verifica se contém minúsculas
-    if(contMinusculas == 0){
+    if (contMinusculas == 0)
+    {
         printf("\n# SENHA INVÁLIDA - não contém qualquer letra minúscula\n");
         return 0;
     }
     //Verifica se contém maiúsculas
-    if(contMaiusculas == 0){
+    if (contMaiusculas == 0)
+    {
         printf("\n# SENHA INVÁLIDA - não contém qualquer letra maiúscula\n");
         return 0;
     }
@@ -118,9 +156,9 @@ int main()
     system("cls || clear");
     printf("\n*********************************************************************************\n_________________________________________________________________________________\n");
     printf("\n\t\t>> BEM-VINDO AO SISTEMA DE AUTENTICAÇÃO <<\n\n");
-    char nome[50], sobrenome[50], senha[100], email[50], entrada;
+    char identificador[50], nome[50], sobrenome[50], senha[100], email[50], entrada, linha[200], separador[] = " ° ";
     int op = 0, i = 0;
-    // FILE *input;
+    FILE *dados;
 
     //Menu de opções
     while (1)
@@ -138,7 +176,8 @@ int main()
         // scanf("%c", &entrada);
         // system("cls || clear");
 
-        // op = atoi(&entrada); --fazer op = entrada - '0'; tirando o atoi
+        //Converte o char para int para que possa ser verificado no Switch
+        // op = entrada-'0';
         op = 2;
 
         switch (op)
@@ -156,38 +195,53 @@ int main()
             printf("\n*********************************************************************************\n_________________________________________________________________________________\n");
             printf("\n\t\t\t>> CADASTRO <<\n\n");
             printf("\n*********************************************************************************\n_________________________________________________________________________________\n");
-            // printf("> Para começar, informe seu primeiro nome:\n_");
-            // scanf("%s", &nome);
-            // printf("> Agora, informe seu sobrenome:\n_");
-            // setbuf(stdin, NULL);
-            // scanf("%[^\n]s", &sobrenome);
-            // printf("> Informe seu e-mail:\n_");
-            // scanf("%s", &email);
+            //### - Fazer validação para que o usuário digite apenas caracteres válidos nessas informações.
+            printf("> Para começar, informe seu primeiro nome:\n_");
+            scanf("%[^\n]s", &nome);
+            printf("> Agora, informe seu sobrenome:\n_");
+            setbuf(stdin, NULL);
+            scanf("%[^\n]s", &sobrenome);
+            printf("> Informe seu e-mail:\n_");
+            scanf("%s", &email);
 
             printf("> Digite uma senha:\n_");
             setbuf(stdin, NULL);
             scanf("%[^\n]s", &senha);
-            // fgets(senha, sizeof senha, stdin);
-            // int lenp1 = strlen(senha);
-            // if (senha[lenp1 - 1] == '\n')
-            // {
-            //     /* nome completo, com ENTER incluido */
-            //     senha[--lenp1] = 0; // apagar o ENTER
-            // }
-            // else
-            // {
-            //     /* ENTER e possivelmente outros caracteres ficaram no buffer */
-            //     int ch;
-            //     do
-            //         ch = getchar();
-            //     while (ch != '\n'); // limpa caracteres extra
-            // }
 
             system("cls || clear");
 
             if (validaSenha(senha) == 1)
             {
-                printf("\nCadastro ralizado com sucesso!");
+                //Abrir o arquivo com parâmetro de append, ou seja, não sobrescreve as informações, apenas adiciona.
+                dados = fopen("dados.txt", "a");
+
+                //Validação para caso o arquivo não possa ser aberto.
+                if (dados == NULL)
+                {
+                    printf("\n# FALHA NOS DADOS - O arquivo de dados não pode ser aberto.");
+                    break;
+                }
+                else
+                {
+                    //zerar a variável antes de começar a utilizá-la, para evitar que tenha valores prévios gravados
+                    linha[0] = '\0';
+                    //Concatenção de valores na variavel para jogar no arquivo somente uma string
+                    strcat(linha,"\n");
+                    strcat(linha, identificador);
+                    strcat(linha, separador);
+                    strcat(linha, senha);
+                    strcat(linha, separador);
+                    strcat(linha, nome);
+                    strcat(linha, separador);
+                    strcat(linha, sobrenome);
+                    strcat(linha, separador);
+                    strcat(linha, email);
+                    //Inserir a string do arquivo
+                    fputs(linha, dados);
+                    printf("\nCadastro ralizado com sucesso!");
+                }
+
+                fclose(dados);
             }
             else
             {
