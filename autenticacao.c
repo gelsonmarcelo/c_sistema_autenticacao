@@ -14,8 +14,8 @@
 * Deve conter, no mínimo, 2 caracteres especiais;
 * Deve conter números e letras;
 * Deve conter pelo menos uma letra maiúscula e uma minúscula;
-* Não pode conter números sequenciais;
-* Não pode conter palavras na posição sequencial do teclado;
+* Não pode conter mais de 2 números ordenados em sequência;
+* Não pode conter números repetidos em sequência;
 * Não pode conter caracteres que não sejam alfanuméricos, caracteres especiais ou espaço.
 **/
 
@@ -26,9 +26,9 @@ int validaSenha(char *senha)
 {
     printf("\nSua senha está sendo analisada de acordo com a política de criação de senhas...\n");
     //Contadores dos tipos de caracteres
-    int contLetras = 0, contNumeros = 0, contEspeciais = 0;
+    int contMinusculas = 0, contMaiusculas = 0, contNumeros = 0, contEspeciais = 0;
 
-    //Verifica condição 1-Deve conter no mínimo 8 caracteres e no máximo 30;
+    //Verifica tamanho da senha
     if (strlen(senha) < 8 || strlen(senha) > 30)
     {
         printf("\n# SENHA INVÁLIDA - Não contém tamanho permitido (mínimo 8 e máximo 30)\n");
@@ -38,35 +38,73 @@ int validaSenha(char *senha)
     //Loop para passar pelos caracteres da senha
     for (int i = 0; i < strlen(senha); i++)
     {
-        //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é alfabético
-        if (isalpha(senha[i]))
+        //Sequencia de IFs para verificar cada caractere da senha
+        //Usando a função islower da biblioteca ctype.h, é possível verificar se o caractere é alfabético e minusculo
+        if (islower(senha[i]))
         {
-            printf("\n%c é Alfabético.", senha[i]);
-            contLetras++;
+            printf("\n%c é Alfabético: minúsculo.", senha[i]);
+            contMinusculas++;
+        }
+        //Usando a função isupper da biblioteca ctype.h, é possível verificar se o caractere é alfabético e maiúsculo
+        else if (isupper(senha[i]))
+        {
+            printf("\n%c é Alfabético: maiúsculo.", senha[i]);
+            contMaiusculas++;
         }
         //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é um digito
         else if (isdigit(senha[i]))
         {
             printf("\n%c é Numérico.", senha[i]);
             contNumeros++;
+            
+            //Verifica se a senha contém números ordenados em sequência (ascendente ou descendente)
+            if(((senha[i]-'0')+1 == senha[i+1]-'0' && (senha[i]-'0')+2 == senha[i+2]-'0') || ((senha[i]-'1') == senha[i+1]-'0' && (senha[i]-'2') == senha[i+2]-'0')){
+                printf("\n# SENHA INVÁLIDA - | %c | faz parte de números ordenados em sequência\n", senha[i]);
+                return 0;
+            }
+
+            //Verifica se a senha contém números repetidos em sequência
+            if(senha[i] == senha[i+1]){
+                printf("\n# SENHA INVÁLIDA - | %c | faz parte de números repetidos em sequência\n", senha[i]);
+                return 0;
+            }
         }
         //Senão é um caractere especial ou outro tipo
-        else if (ispunct(senha[i]))
+        else if (ispunct(senha[i]) || isspace(senha[i]))
         {
-            printf("\n> | %c | é um caractere especial.", senha[i]);
+            printf("\n> | %c | é um caractere especial/espaço.", senha[i]);
             contEspeciais++;
-        }
-        else if(isblank(senha[i])){
-            printf("\n> | %c | é um espaço.", senha[i]);
         }
         else{
             printf("\n# SENHA INVÁLIDA - Sua senha contém caracteres que nao são nem alfanuméricos nem especiais ou espaço.");
-            printf("\n# Verifique a digitação e tente novamente:");
-            printf("\n#\tCaracteres especiais: ! \" # $ %% & ' ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ _ ` { | } ~");
-            printf("\n#\tCaracteres numéricos: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9");
-            printf("\n#\tCaracteres alfabéticos: a b c d e f g h i j k l m n o p q r s t u v w x y z \n#\t\t\tA B C D E F G H I J K L M N O P Q R S T U V W X Y Z");
+            printf("\n# Verifique a digitação e tente novamente.\n# Caracteres permitidos:");
+            printf("\n#\tEspeciais: ! \" # $ %% & ' ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ _ ` { | } ~");
+            printf("\n#\tNuméricos: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9");
+            printf("\n#\tAlfabéticos: a b c d e f g h i j k l m n o p q r s t u v w x y z \n#\t\t\tA B C D E F G H I J K L M N O P Q R S T U V W X Y Z");
             return 0;
         }
+
+    }//Fim do for que passa pela senha
+
+    //Valida a quantidade de caracteres especiais
+    if(contEspeciais < 2){
+        printf("\n# SENHA INVÁLIDA - não contém caracteres especiais suficientes\n");
+        return 0;
+    }
+    //Verifica se contém números e letras
+    if((contMinusculas+contMaiusculas) == 0 || contNumeros == 0){
+        printf("\n# SENHA INVÁLIDA - não contém letras e números\n");
+        return 0;
+    }
+    //Verifica se contém minúsculas
+    if(contMinusculas == 0){
+        printf("\n# SENHA INVÁLIDA - não contém qualquer letra minúscula\n");
+        return 0;
+    }
+    //Verifica se contém maiúsculas
+    if(contMaiusculas == 0){
+        printf("\n# SENHA INVÁLIDA - não contém qualquer letra maiúscula\n");
+        return 0;
     }
 
     printf("\nValidação da senha finalizada...\n");
@@ -100,7 +138,7 @@ int main()
         // scanf("%c", &entrada);
         // system("cls || clear");
 
-        // op = atoi(&entrada);
+        // op = atoi(&entrada); --fazer op = entrada - '0'; tirando o atoi
         op = 2;
 
         switch (op)
