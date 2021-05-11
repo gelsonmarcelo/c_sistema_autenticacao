@@ -1,3 +1,4 @@
+#include <unistd.h>   
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -261,9 +262,11 @@ void cadastrarUsuario()
     //loop da senha
     do
     {
-        printf("> Crie uma senha: ");
+        // printf("> Crie uma senha: ");
         setbuf(stdin, NULL);
-        scanf("%[^\n]s", &u.senha);
+        // scanf("%[^\n]s", &u.senha);
+        strcpy(u.senha, getpass("> Crie uma senha: "));
+        // printf("\n%s", u.senha);
     } while (!validarSenha(u.senha));
 
     system("cls || clear");
@@ -448,8 +451,10 @@ void autenticar()
 {
     printf("> Informe seus dados\n> Login: ");
     scanf("%s", &u.nome);
-    printf("> Senha: ");
-    scanf("%s", &u.senha);
+    // printf("\n> Senha: ");
+    // scanf("%s", &u.senha);
+    strcpy(u.senha, getpass("\n> Senha: "));
+    // printf("%s", u.senha);
 
     printf("# Agora você está logado!");
 }
