@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <locale.h>
+#include <sys/random.h>
 
 /**
 * - Identificador
@@ -34,6 +35,8 @@ short int validarSenha(char *senha);
 int getProximoId();
 void autenticar();
 void mostrarPolitica();
+void gerarSal();
+void criptografarSenha(char *senha, char *sal);
 
 /**
  * Função principal
@@ -44,7 +47,7 @@ int main()
     system("cls || clear");
         printf("\n_________________________________________________________________________________");
         printf("\n*********************************************************************************\n");
-    printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO! <<\n");
+    printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO!!! <<\n");
     char entrada = '0';
     int op = 0, i = 0;
 
@@ -121,6 +124,7 @@ struct usuario
     char sobrenome[50];
     char email[30];
     char identificador[50];
+    char sal[32];
     char senha[100];
 };
 
@@ -134,6 +138,7 @@ void limparEstrutura()
     u.sobrenome[0] = '\0';
     u.email[0] = '\0';
     u.identificador[0] = '\0';
+    u.sal[0] = '\0';
     u.senha[0] = '\0';
 }
 
@@ -281,6 +286,10 @@ void cadastrarUsuario()
         return;
     }
 
+    gerarSal();
+    
+    criptografarSenha(u.senha, u.sal);
+
     //zerar a variável antes de começar a utilizá-la, para evitar que tenha valores prévios gravados
     linha[0] = '\0';
     //Concatenção de valores na variavel para jogar no arquivo somente uma string
@@ -306,6 +315,50 @@ void cadastrarUsuario()
 
     // printf("\n\nSeu nome completo é %s %s!\nSua senha é '%s'.\n", u.nome, u.sobrenome, u.senha);
     limparEstrutura();
+}
+
+/**
+ * Gerar valor de sal
+ */
+void gerarSal(){
+    //Tamanho definido do buffer
+    size_t buffer_size = 32;
+    //Ponteiro onde serão armazenados os caracteres gerados aleatoriamente
+    char *buffer;
+    //Para guardar a quantidade de caracteres gerados na função getrandom
+    int retorno;
+    
+    //Reservar espaço de 32 bytes na memória
+    buffer = malloc(buffer_size);
+
+    //Flag 0 para que a função utilize /dev/urandom - fonte de aleatoriedade do próprio Kernel.
+    retorno = getrandom(buffer, buffer_size, 0);
+    //Verifica se a função retornou todo os bytes necessários
+    if (retorno != buffer_size) {
+            perror("# Erro ao obter caracteres para criação do salt");
+    }
+
+    char lista_caracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/,.-+=~`<>:";
+    printf("\nSaída PRNG_v2 (char) = ");
+    for(int i = 0; i < 32; i++)
+    {
+        //Seleciona 1 caractere da lista: converte o caractere do buffer para unsigned char (número) e faz 
+        //MOD quantidade de caracteres da lista, o resultado será o índice que contém o caractere usado.
+        //Evitando assim que surjam caracteres que não podem ser interpretados pela codificação do SO.
+        printf("%c ", lista_caracteres[ ((unsigned char) buffer[i]) % (strlen(lista_caracteres)) ]);
+        u.sal[i] = lista_caracteres[ ((unsigned char) buffer[i]) % (strlen(lista_caracteres)) ];
+    }
+}
+
+/**
+ * Criptografar senha
+ */
+void criptografarSenha(char *senha, char *sal){
+    // ### - terminar a criptografia da senha, testar criptografia, comparar hash gerado e verificar aleatoriedade do sal
+    char idSaltSenha[200];
+    sprintf(idSaltSenha, "$6$rounds=20000$%s$", u.sal);
+    char *senha_com_hash3 = crypt(senha, idSaltSenha);
+    printf("\nSalted Hash com SHA512 = %s\n", senha_com_hash3);
 }
 
 /**
