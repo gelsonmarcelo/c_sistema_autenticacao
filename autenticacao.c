@@ -1,11 +1,13 @@
-#include <unistd.h>   
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <locale.h>
 #include <sys/random.h>
-
+//Tamanho definido do buffer
+#define SALT_SIZE 32
+#define PARAMETRO_CRYPT "$6$rounds=0$%s$"
 /**
 * - Identificador
 * Para criação do identificador, não pode ser utilizado nome, sobrenome ou email;
@@ -24,6 +26,7 @@
 //Ponteiro para o arquivo de dados
 FILE *dados;
 
+
 //Declaração da estrutura
 struct usuario u;
 
@@ -36,7 +39,7 @@ int getProximoId();
 void autenticar();
 void mostrarPolitica();
 void gerarSal();
-void criptografarSenha(char *senha, char *sal);
+void criptografarSenha();
 
 /**
  * Função principal
@@ -45,9 +48,9 @@ int main()
 {
     setlocale(LC_ALL, "Portuguese");
     system("cls || clear");
-        printf("\n_________________________________________________________________________________");
-        printf("\n*********************************************************************************\n");
-    printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO!!! <<\n");
+    printf("\n_________________________________________________________________________________");
+    printf("\n*********************************************************************************\n");
+    printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO! <<\n");
     char entrada = '0';
     int op = 0, i = 0;
 
@@ -73,7 +76,7 @@ int main()
         system("cls || clear");
 
         //Converte o char para int para que possa ser verificado no switch
-        op = entrada -'0';
+        op = entrada - '0';
         // op = 2;
 
         switch (op)
@@ -82,27 +85,27 @@ int main()
             printf("\n# Sistema finalizado.\n");
             return 0;
         case 1:
-        printf("\n_________________________________________________________________________________");
-        printf("\n*********************************************************************************\n");
+            printf("\n_________________________________________________________________________________");
+            printf("\n*********************************************************************************\n");
             printf("\n\t\t\t>> AUTENTICAÇÃO <<\n\n");
-        printf("\n_________________________________________________________________________________");
-        printf("\n*********************************************************************************\n");
+            printf("\n_________________________________________________________________________________");
+            printf("\n*********************************************************************************\n");
             autenticar();
             break;
         case 2:
-        printf("\n_________________________________________________________________________________");
-        printf("\n*********************************************************************************\n");
+            printf("\n_________________________________________________________________________________");
+            printf("\n*********************************************************************************\n");
             printf("\n\t\t\t>> CADASTRO <<\n\n");
-        printf("\n_________________________________________________________________________________");
-        printf("\n*********************************************************************************\n");
+            printf("\n_________________________________________________________________________________");
+            printf("\n*********************************************************************************\n");
             cadastrarUsuario();
             break;
         case 3:
-        printf("\n_________________________________________________________________________________");
-        printf("\n*********************************************************************************\n");
+            printf("\n_________________________________________________________________________________");
+            printf("\n*********************************************************************************\n");
             printf("\n\t\t>> POLÍTICA DE IDENTIFICADORES E SENHAS <<\n\n");
-        printf("\n_________________________________________________________________________________");
-        printf("\n*********************************************************************************\n");
+            printf("\n_________________________________________________________________________________");
+            printf("\n*********************************************************************************\n");
             mostrarPolitica();
             break;
         default:
@@ -124,8 +127,8 @@ struct usuario
     char sobrenome[50];
     char email[30];
     char identificador[50];
-    char sal[32];
-    char senha[100];
+    char sal[SALT_SIZE];
+    char senha[500];
 };
 
 /**
@@ -287,8 +290,8 @@ void cadastrarUsuario()
     }
 
     gerarSal();
-    
-    criptografarSenha(u.senha, u.sal);
+
+    criptografarSenha();
 
     //zerar a variável antes de começar a utilizá-la, para evitar que tenha valores prévios gravados
     linha[0] = '\0';
@@ -320,45 +323,61 @@ void cadastrarUsuario()
 /**
  * Gerar valor de sal
  */
-void gerarSal(){
-    //Tamanho definido do buffer
-    size_t buffer_size = 32;
+void gerarSal()
+{
     //Ponteiro onde serão armazenados os caracteres gerados aleatoriamente
     char *buffer;
     //Para guardar a quantidade de caracteres gerados na função getrandom
     int retorno;
-    
+
     //Reservar espaço de 32 bytes na memória
-    buffer = malloc(buffer_size);
+    buffer = malloc(SALT_SIZE);
 
     //Flag 0 para que a função utilize /dev/urandom - fonte de aleatoriedade do próprio Kernel.
-    retorno = getrandom(buffer, buffer_size, 0);
+    retorno = getrandom(buffer, SALT_SIZE, 0);
     //Verifica se a função retornou todo os bytes necessários
-    if (retorno != buffer_size) {
-            perror("# Erro ao obter caracteres para criação do salt");
+    if (retorno != SALT_SIZE)
+    {
+        perror("# Erro ao obter caracteres para criação do salt");
     }
 
     char lista_caracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/,.-+=~`<>:";
+
+    // printf("Saída PRNG_v2 (unsigned char) = ");
+    // for (int indice = 0; indice < SALT_SIZE; indice++)
+    // {
+    //     printf("%hhu ", buffer[indice]);
+    // }
     printf("\nSaída PRNG_v2 (char) = ");
-    for(int i = 0; i < 32; i++)
+    for (int i = 0; i < SALT_SIZE; i++)
     {
-        //Seleciona 1 caractere da lista: converte o caractere do buffer para unsigned char (número) e faz 
+        //Seleciona 1 caractere da lista: converte o caractere do buffer para unsigned char (número) e faz
         //MOD quantidade de caracteres da lista, o resultado será o índice que contém o caractere usado.
         //Evitando assim que surjam caracteres que não podem ser interpretados pela codificação do SO.
-        printf("%c ", lista_caracteres[ ((unsigned char) buffer[i]) % (strlen(lista_caracteres)) ]);
-        u.sal[i] = lista_caracteres[ ((unsigned char) buffer[i]) % (strlen(lista_caracteres)) ];
+        // printf("\n\nContador = %i \nSequencia do Sal: %s \nCaractere escolhido da lista: %c", i, u.sal, lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))]);
+        printf("%c ", lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))]);
+        u.sal[i] = lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))];
+        
     }
+    u.sal[32] = '\0';
+    printf("\nSal que foi para estrutura: %s", u.sal);
 }
 
 /**
  * Criptografar senha
  */
-void criptografarSenha(char *senha, char *sal){
-    // ### - terminar a criptografia da senha, testar criptografia, comparar hash gerado e verificar aleatoriedade do sal
-    char idSaltSenha[200];
-    sprintf(idSaltSenha, "$6$rounds=20000$%s$", u.sal);
-    char *senha_com_hash3 = crypt(senha, idSaltSenha);
-    printf("\nSalted Hash com SHA512 = %s\n", senha_com_hash3);
+void criptografarSenha()
+{
+    // ### - terminar a criptografia da senha, testar criptografia, comparar hash gerado.
+    //Variavel que armazena o valor do parâmetro para função crypt
+    char idSaltSenha[strlen(PARAMETRO_CRYPT) + SALT_SIZE];
+    //Incluindo o valor do sal no valor do parâmetro da função crypt e definindo na variavel idSaltSenha
+    sprintf(idSaltSenha, PARAMETRO_CRYPT, u.sal);
+    printf("\nIsSaltSenha: size %d = %s", strlen(idSaltSenha), idSaltSenha);
+    // ### falha de segmentação.
+    char *senha_com_hash = crypt(u.senha, idSaltSenha);
+    printf("\nSalted Hash com SHA512 = %s\n", senha_com_hash);
+    strcpy(u.senha, senha_com_hash);
 }
 
 /**
