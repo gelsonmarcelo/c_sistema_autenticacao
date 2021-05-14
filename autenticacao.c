@@ -53,11 +53,10 @@ struct usuario
     char sobrenome[50];
     char email[50];
     char identificador[50];
-    char sal[SALT_SIZE+1];
+    char sal[SALT_SIZE + 1];
     char senha[50];
     char *senhaCriptografada;
 };
-
 
 /**
  * Função principal
@@ -140,7 +139,6 @@ int main()
  */
 void limparEstrutura()
 {
-    printf("\n3");
     u.codigo = '0';
     u.nome[0] = '\0';
     u.sobrenome[0] = '\0';
@@ -190,7 +188,8 @@ int getProximoId()
     while (!feof(dados))
     {
         //Lê as linhas até o final do arquivo
-        fscanf(dados, "%i ° %[^\n]s", &id, &linha);
+        fscanf(dados, "%i ° %[^\n]s", &id, linha);
+        printf("\n> %d + %s", id, linha);
     }
     fclose(dados);
 
@@ -328,10 +327,9 @@ void cadastrarUsuario()
 
     //Fecha o arquivo
     fclose(dados);
-    
+
     // printf("\n\nSeu nome completo é %s %s!\nSua senha é '%s'.\n", u.nome, u.sobrenome, u.senha);
     limparEstrutura();
-    
 }
 
 /**
@@ -372,7 +370,6 @@ void gerarSal()
         // printf("\n\nContador = %i \nSequencia do Sal: %s \nCaractere escolhido da lista: %c", i, u.sal, lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))]);
         printf("%c ", lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))]);
         u.sal[i] = lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))];
-        
     }
     u.sal[32] = '\0';
     printf("\n>Sal que foi para estrutura: %s", u.sal);
@@ -383,7 +380,7 @@ void gerarSal()
  */
 void criptografarSenha()
 {
-    
+
     //Reservar espaço de 120 bytes na memória
     u.senhaCriptografada = malloc(120);
 
@@ -394,7 +391,7 @@ void criptografarSenha()
     //Incluindo o valor do sal no valor do parâmetro da função crypt e definindo na variavel idSaltSenha
     sprintf(idSaltSenha, PARAMETRO_CRYPT, u.sal);
     printf("\n>IdSaltSenha: size %d : %s", strlen(idSaltSenha), idSaltSenha);
-    
+
     // ### - Verificar se o hash gerado está correto
     //Aqui, se a senha criptografada retornar NULL, fazer validação.
     u.senhaCriptografada = crypt(u.senha, idSaltSenha);
@@ -542,7 +539,7 @@ short int validarSenha(char *senha)
  */
 void autenticar()
 {
-    char identificadorArquivo[50], saltArquivo[SALT_SIZE+1], criptografiaArquivo[120], usuarioArquivo[50], sobrenomeArquivo[50], emailArquivo[50];
+    char identificadorArquivo[50], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[50], sobrenomeArquivo[50], emailArquivo[50], temp[1000];
     int idArquivo = 0;
     printf("> Informe seus dados\n> Login: ");
     scanf("%s", &u.identificador);
@@ -560,26 +557,28 @@ void autenticar()
         printf("\n# ERRO FATAL - O arquivo de dados não pode ser aberto.");
         return;
     }
-    
+
     while (!feof(dados))
     {
         //Lê as linhas até o final do arquivo
-        fscanf(dados, "%d ° %s ° %s ° %[^°]s\n\n", &idArquivo, identificadorArquivo , saltArquivo, criptografiaArquivo/*, usuarioArquivo, sobrenomeArquivo, emailArquivo*/);
-        // strcpy(u.sal, saltArquivo);
-        // criptografarSenha();
+        fscanf(dados, "%d ° %s ° %s ° %s ° %[^\n]s", &idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, temp);
+        strcpy(u.sal, saltArquivo);
+        criptografarSenha();
 
-        printf("\n\n\n> ID arq: %d\nidentificador: %s\n\t> Sal: %s\n\t\t> Hash: %s", idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo);
+        printf("\n\n\n> ID arq: %d\nidentificador: %s\n\t> Sal: %s\n\t\t> Hash: %s\n\t\t> Temp: %s", idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, temp);
 
-        if(!strcmp(identificadorArquivo, u.identificador) && !strcmp(criptografiaArquivo, u.senhaCriptografada)){
+        if (!strcmp(identificadorArquivo, u.identificador) && !strcmp(criptografiaArquivo, u.senhaCriptografada))
+        {
             printf("\n\n\n\n\n\n\n# Agora você está logado!\n\n\n\n\n\n");
             return;
-        }else{
+        }
+        else
+        {
             printf("\nNão é essa linha...");
         }
     }
     fclose(dados);
-    limparEstrutura();
-    
+    //limparEstrutura(); //### - Ocorre falha de segmentação se executar esse código aqui
 }
 
 /**
@@ -600,4 +599,3 @@ void mostrarPolitica()
     printf("\n-Não pode conter números repetidos em sequência;");
     printf("\n-Não pode conter caracteres que não sejam alfanuméricos, especiais ou espaço.\n");
 }
-
