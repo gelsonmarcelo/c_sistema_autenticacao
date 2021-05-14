@@ -37,7 +37,7 @@ short int validarStringPadrao(char *string);
 short int validarIdentificador(char *identificador);
 short int validarSenha(char *senha);
 int getProximoId();
-void autenticar();
+short int autenticar();
 void mostrarPolitica();
 void gerarSal();
 void criptografarSenha();
@@ -107,7 +107,9 @@ int main()
             printf("\n\t\t\t>> AUTENTICAÇÃO <<\n\n");
             printf("\n_________________________________________________________________________________");
             printf("\n*********************************************************************************\n");
-            autenticar();
+            if(autenticar()){
+                printf("\n\n\n\n\n\n\n\n\\t\tBem vindo usuário X\n");
+            }
             break;
         case 2:
             printf("\n_________________________________________________________________________________");
@@ -139,14 +141,22 @@ int main()
  */
 void limparEstrutura()
 {
+    memset(&u.nome[0], 0, sizeof(u.nome));
+    memset(&u.sobrenome[0], 0, sizeof(u.sobrenome));
+    memset(&u.email[0], 0, sizeof(u.email));
+    memset(&u.identificador[0], 0, sizeof(u.identificador));
+    memset(&u.sal[0], 0, sizeof(u.sal));
+    memset(&u.senha[0], 0, sizeof(u.senha));
+    memset(&u.senhaCriptografada[0], 0, sizeof(u.senhaCriptografada));
     u.codigo = '0';
-    u.nome[0] = '\0';
-    u.sobrenome[0] = '\0';
-    u.email[0] = '\0';
-    u.identificador[0] = '\0';
-    u.sal[0] = '\0';
-    u.senha[0] = '\0';
-    u.senhaCriptografada[0] = '\0';
+    // u.nome[0] = '\0';
+    // u.sobrenome[0] = '\0';
+    // u.email[0] = '\0';
+    // u.identificador[0] = '\0';
+    // u.sal[0] = '\0';
+    // u.senha[0] = '\0';
+    // u.senhaCriptografada[0] = '\0';
+    printf("# A ESTRUTURA FOI LIMPA.\n");
 }
 
 /**
@@ -204,6 +214,7 @@ int getProximoId()
  */
 short int validarStringPadrao(char *string)
 {
+    // ### - Remover essa função, posso setar que caracteres podem ser lidos na string do scanf com 'scanf(%[A−Z0−9], texto);'
     //Loop para passar pelos caracteres da string
     for (int i = 0; i < strlen(string); i++)
     {
@@ -412,6 +423,7 @@ short int validarIdentificador(char *identificador)
     }
 
     //Loop para passar pelos caracteres do identificador
+    // ### - Remover esse loop e selecionar a entrada no scanf(%[a-zA-Z.]s)
     for (int i = 0; i < strlen(identificador); i++)
     {
         if (!isalpha(identificador[i]) && identificador[i] != '.')
@@ -537,7 +549,7 @@ short int validarSenha(char *senha)
 /**
  * Relizar a autenticação do usuário
  */
-void autenticar()
+short int autenticar()
 {
     char identificadorArquivo[50], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[50], sobrenomeArquivo[50], emailArquivo[50], temp[1000];
     int idArquivo = 0;
@@ -555,7 +567,7 @@ void autenticar()
     if (dados == NULL)
     {
         printf("\n# ERRO FATAL - O arquivo de dados não pode ser aberto.");
-        return;
+        return 0;
     }
 
     while (!feof(dados))
@@ -565,12 +577,14 @@ void autenticar()
         strcpy(u.sal, saltArquivo);
         criptografarSenha();
 
-        printf("\n\n\n> ID arq: %d\nidentificador: %s\n\t> Sal: %s\n\t\t> Hash: %s\n\t\t> Temp: %s", idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, temp);
+        printf("\n\n\n> ID arq: %d\nidentificador: %s\n\t> Sal: %s\n\t\t> Hash: %s\n\t\t\t> Temp: %s", idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, temp);
 
         if (!strcmp(identificadorArquivo, u.identificador) && !strcmp(criptografiaArquivo, u.senhaCriptografada))
         {
-            printf("\n\n\n\n\n\n\n# Agora você está logado!\n\n\n\n\n\n");
-            return;
+            printf("\n\n\n\n\n\n\n# SUCESSO - Agora você está logado!\n\n\n\n\n\n");
+            fclose(dados);
+            limparEstrutura();
+            return 1;
         }
         else
         {
@@ -578,7 +592,9 @@ void autenticar()
         }
     }
     fclose(dados);
-    //limparEstrutura(); //### - Ocorre falha de segmentação se executar esse código aqui
+    limparEstrutura();
+    printf("\n# FALHA - Usuário e/ou senha incorretos!\n");
+    return 0;
 }
 
 /**
