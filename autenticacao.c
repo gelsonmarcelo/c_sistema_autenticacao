@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <locale.h>
 #include <sys/random.h>
+#include <errno.h>
 
 //Tamanho definido do sal
 #define SALT_SIZE 16
@@ -53,7 +54,7 @@ void limparEstrutura();
 void areaLogada();
 void imprimeDecoracao();
 void imprimirDados();
-void editarDados();
+void excluirDados();
 
 /**
  * Estrutura para organização dos valores do usuário
@@ -85,8 +86,7 @@ int main()
         printf("\n# FALHA AO INICIAR PROGRAMA\n# O arquivo de dados não pode ser manipulado, verifique.\n");
         return 0;
     }
-
-    // system("cls || clear");
+    fclose(dados);
     imprimeDecoracao();
     printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO! <<\n");
     char entrada = '0';
@@ -95,11 +95,15 @@ int main()
     //Menu de opções
     do
     {
+        scanf("\nPressione ENTER para continuar...\n%c", entrada);
+
         //Limpa o buffer do teclado para evitar que lixo de memória seja lido ao invés da entrada do usuário
         setbuf(stdin, NULL);
+
         //Limpar a variável para evitar lixo de memória nas repetições
         entrada = '\0';
 
+        system("cls || clear");
         imprimeDecoracao();
         printf("> Informe um número para escolher uma opção e pressione ENTER:");
         printf("\n[1] Login");
@@ -118,7 +122,7 @@ int main()
         switch (op)
         {
         case 0:
-            printf("\n# Sistema finalizado.\n");
+            printf("\n# SISTEMA FINALIZADO.\n");
             return 0;
         case 1:
             imprimeDecoracao();
@@ -165,7 +169,7 @@ void limparEstrutura()
     memset(&u.senhaCriptografada[0], 0, sizeof(u.senhaCriptografada));
     memset(&u.linhaUsuario[0], 0, sizeof(u.linhaUsuario));
     u.codigo = '0';
-    printf("\n# A ESTRUTURA FOI LIMPA.\n");
+    // printf("\n# A ESTRUTURA FOI LIMPA.\n");
 }
 
 /**
@@ -217,7 +221,7 @@ int getProximoId()
     {
         //Lê as linhas até o final do arquivo
         fscanf(dados, "%d | %[^\n]s", &id, linha);
-        printf("\n§ %d + %s", id, linha);
+        // printf("\n§ %d + %s", id, linha);
     }
     fclose(dados);
 
@@ -256,20 +260,8 @@ short int validarStringPadrao(char *string)
  */
 short int validarStringEmail(char *string)
 {
-    //Loop para passar pelos caracteres da string
-    // for (int i = 0; i < strlen(string); i++)
-    // {
-    //     //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é alfabético
-    //     if (!isalnum(string[i]) && string[i] != '.' && string[i] != '_' && string[i] != '-' && string[i] != '@')
-    //     {
-    //         printf("\n# CARACTERE INVÁLIDO: por favor insira somente caracteres alfabéticos nesse campo, sem espaços ou pontuações.\n# '%c' não é alfabético!\n", string[i]);
-    //         return 0;
-    //     }
-    // }
-    // return 1;
-
     char usuario[256], site[256], dominio[256];
-
+    //Valida tamanho da string
     if (strlen(string) > 50)
     {
         printf("\n# QUANTIDADE LIMITE DE CARACTERES: por favor não ultrapasse a quantidade de 50 caracteres, você inseriu %d caracteres!\n", strlen(string));
@@ -281,7 +273,6 @@ short int validarStringEmail(char *string)
         printf("\n# E-MAIL INVÁLIDO: por favor verifique o e-mail digitado\n");
         return 0;
     }
-
     return 1;
 }
 
@@ -299,11 +290,11 @@ void imprimeDecoracao()
 void cadastrarUsuario()
 {
     //Variável para fazer a entrada de valores antes de validação
-    char temp[2048];
+    char temp[MAX];
     memset(&temp[0], 0, sizeof(temp));
 
     //Declara variavel que vai unir todos os valores para inserir no arquivo de uma só vez
-    char linha[1000];
+    char linha[MAX];
 
     //Variavel string que recebera o valor de código (inteiro), para utilizar na concatenação
     char codigoString[16];
@@ -369,13 +360,13 @@ void cadastrarUsuario()
     } while (!validarSenha(temp));
     strcpy(u.senha, temp);
     memset(&temp[0], 0, sizeof(temp));
+
     // ### - solicitar confirmação da senha e comparar
 
     // system("cls || clear");
 
     //Abrir o arquivo com parâmetro de append, não sobrescreve as informações, apenas adiciona.
     dados = fopen(nomeArquivo, "a");
-
     //Validação para caso o arquivo não possa ser aberto.
     if (dados == NULL)
     {
@@ -384,7 +375,6 @@ void cadastrarUsuario()
     }
 
     gerarSal();
-
     criptografarSenha();
 
     //zerar a variável antes de começar a utilizá-la, para evitar que tenha valores prévios gravados
@@ -408,7 +398,7 @@ void cadastrarUsuario()
     //Inserir a string do arquivo
     fputs(linha, dados);
 
-    printf("\n# SUCESSO - Cadastro ralizado!\n§ %s\n", linha);
+    printf("\n# SUCESSO - Cadastro ralizado!\n");
 
     //Fecha o arquivo
     fclose(dados);
@@ -423,6 +413,10 @@ void gerarSal()
 {
     //Ponteiro onde serão armazenados os caracteres gerados aleatoriamente
     char *buffer;
+
+    //Lista de caracteres para serem escolhidos para o salt
+    char listaCaracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
+
     //Para guardar a quantidade de caracteres gerados na função getrandom
     int retorno;
 
@@ -431,32 +425,24 @@ void gerarSal()
 
     //Flag 0 para que a função utilize /dev/urandom - fonte de aleatoriedade do próprio Kernel.
     retorno = getrandom(buffer, SALT_SIZE, 0);
+
     //Verifica se a função retornou todo os bytes necessários
     if (retorno != SALT_SIZE)
     {
-        perror("# Erro ao obter caracteres para criação do salt");
+        perror("# FALHA - Erro ao obter caracteres para criação do salt");
     }
 
-    //Retirei o ':' estava causando problema na função crypt, fazendo-a retornar NULL quando aparecia no sal
-    char listaCaracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
-
-    // printf("Saída PRNG_v2 (unsigned char) = ");
-    // for (int indice = 0; indice < SALT_SIZE; indice++)
-    // {
-    //     printf("%hhu ", buffer[indice]);
-    // }
-    printf("\n>Saída PRNG_v2 (char) = ");
     for (int i = 0; i < SALT_SIZE; i++)
     {
         //Seleciona 1 caractere da lista: converte o caractere do buffer para unsigned char (número) e faz
         //MOD quantidade de caracteres da lista, o resultado será o índice que contém o caractere usado.
         //Evitando assim que surjam caracteres que não podem ser interpretados pela codificação do SO.
         // printf("\n\nContador = %i \nSequencia do Sal: %s \nCaractere escolhido da lista: %c", i, u.sal, lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))]);
-        printf("%c ", listaCaracteres[((unsigned char)buffer[i]) % (strlen(listaCaracteres))]);
+        // printf("%c ", listaCaracteres[((unsigned char)buffer[i]) % (strlen(listaCaracteres))]);
         u.sal[i] = listaCaracteres[((unsigned char)buffer[i]) % (strlen(listaCaracteres))];
     }
-    u.sal[SALT_SIZE + 1] = '\0';
-    printf("\n>Sal que foi para estrutura: %s", u.sal);
+    u.sal[SALT_SIZE] = '\0';
+    // printf("\n>Sal que foi para estrutura: %s", u.sal);
 }
 
 /**
@@ -464,20 +450,19 @@ void gerarSal()
  */
 void criptografarSenha()
 {
-
     //Reservar espaço de 120 bytes na memória
     u.senhaCriptografada = malloc(120);
 
     //Variavel que armazena o valor do parâmetro para função crypt
     char idSaltSenha[strlen(PARAMETRO_CRYPT) + SALT_SIZE];
-    printf("\n§ Tamanho alocado para o idSaltSenha: %d", strlen(PARAMETRO_CRYPT) + SALT_SIZE);
+    // printf("\n§ Tamanho alocado para o idSaltSenha: %d", strlen(PARAMETRO_CRYPT) + SALT_SIZE);
 
     //Incluindo o valor do sal no valor do parâmetro da função crypt e definindo na variavel idSaltSenha
     sprintf(idSaltSenha, PARAMETRO_CRYPT, u.sal);
-    printf("\n§ IdSaltSenha: size %d : %s", strlen(idSaltSenha), idSaltSenha);
+    // printf("\n§ IdSaltSenha: size %d : %s", strlen(idSaltSenha), idSaltSenha);
 
     u.senhaCriptografada = crypt(u.senha, idSaltSenha);
-    printf("\n§ Salted Hash com SHA512 = %s\n", crypt(u.senha, idSaltSenha));
+    // printf("\n§ Salted Hash com SHA512 = %s\n", crypt(u.senha, idSaltSenha));
 }
 
 /**
@@ -525,7 +510,7 @@ short int validarSenha(char *senha)
 {
     //Contadores dos tipos de caracteres
     int contMinusculas = 0, contMaiusculas = 0, contNumeros = 0, contEspeciais = 0;
-    printf("\n###");
+    // printf("\n###");
 
     //Verifica tamanho da senha
     if (strlen(senha) < 8 || strlen(senha) > 30)
@@ -590,30 +575,29 @@ short int validarSenha(char *senha)
     //Valida a quantidade de caracteres especiais
     if (contEspeciais < 2)
     {
-        printf("\n# SENHA INVÁLIDA - não contém caracteres especiais suficientes\n");
+        printf("\n# SENHA INVÁLIDA - Não contém caracteres especiais suficientes\n");
         return 0;
     }
     //Verifica se contém números e letras
     if ((contMinusculas + contMaiusculas) == 0 || contNumeros == 0)
     {
-        printf("\n# SENHA INVÁLIDA - não contém letras e números\n");
+        printf("\n# SENHA INVÁLIDA - Não contém letras e números\n");
         return 0;
     }
     //Verifica se contém minúsculas
     if (contMinusculas == 0)
     {
-        printf("\n# SENHA INVÁLIDA - não contém qualquer letra minúscula\n");
+        printf("\n# SENHA INVÁLIDA - Não contém qualquer letra minúscula\n");
         return 0;
     }
     //Verifica se contém maiúsculas
     if (contMaiusculas == 0)
     {
-        printf("\n# SENHA INVÁLIDA - não contém qualquer letra maiúscula\n");
+        printf("\n# SENHA INVÁLIDA - Não contém qualquer letra maiúscula\n");
         return 0;
     }
 
-    printf("\n# Sua senha está de acordo com a política e foi aprovada!\n");
-
+    printf("\n# SUCESSO - Sua senha está de acordo com a política e foi aprovada!\n");
     return 1;
 }
 
@@ -626,10 +610,8 @@ short int autenticar()
     int idArquivo = 0;
     printf("> Informe seus dados:\n> LOGIN: ");
     scanf("%s", &u.identificador);
-    // printf("\n> Senha: ");
-    // scanf("%s", &u.senha);
     strcpy(u.senha, getpass("> SENHA: "));
-    printf("\nLogin informado: %s | senha: %s\n", u.identificador, u.senha);
+    // printf("\nLogin informado: %s | senha: %s\n", u.identificador, u.senha);
 
     //Abrir o arquivo com parâmetro de read, apenas lê.
     dados = fopen(nomeArquivo, "r");
@@ -648,7 +630,7 @@ short int autenticar()
         strcpy(u.sal, saltArquivo);
         criptografarSenha();
 
-        printf("\n\n\n> ID arq: %d\nidentificador: %s\n\t> Sal: %s\n\t\t> Hash: %s\n\t\t\t> Usuario: %s\n\t\t\t> Sobrenome: %s\n\t\t\t> email: %s", idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, usuarioArquivo, sobrenomeArquivo, emailArquivo);
+        // printf("\n\n\n> ID arq: %d\nidentificador: %s\n\t> Sal: %s\n\t\t> Hash: %s\n\t\t\t> Usuario: %s\n\t\t\t> Sobrenome: %s\n\t\t\t> email: %s", idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, usuarioArquivo, sobrenomeArquivo, emailArquivo);
 
         if (!strcmp(identificadorArquivo, u.identificador) && !strcmp(criptografiaArquivo, u.senhaCriptografada))
         {
@@ -660,19 +642,18 @@ short int autenticar()
             strcpy(u.sobrenome, sobrenomeArquivo);
             strcpy(u.email, emailArquivo);
             strcpy(u.identificador, identificadorArquivo);
-            // ### - Verificar necessidade de trazer esses dados
             strcpy(u.sal, saltArquivo);
             strcpy(u.senhaCriptografada, criptografiaArquivo);
 
             sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s\n", u.codigo, u.identificador, u.sal, u.senhaCriptografada, u.nome, u.sobrenome, u.email);
-            printf("§ Teste linhaUsuario:\n%s", u.linhaUsuario);
+            // printf("§ Teste linhaUsuario:\n%s", u.linhaUsuario);
             fclose(dados);
             return 1;
         }
-        else
-        {
-            printf("\nNão é essa linha...");
-        }
+        // else
+        // {
+        //     printf("\nNão é essa linha...");
+        // }
     }
     fclose(dados);
     limparEstrutura();
@@ -704,29 +685,30 @@ void mostrarPolitica()
  */
 void areaLogada()
 {
-    // system("cls || clear");
     char entrada = '0';
     int op = 0;
-    // ### - Não está pegando os dados do usuário
     imprimeDecoracao();
     printf("\n\tBEM VINDO %s!\n", u.nome);
 
     //Menu de opções
     do
     {
+        scanf("\nPressione ENTER para continuar...\n%c", entrada);
+
         //Limpa o buffer do teclado para evitar que lixo de memória seja lido ao invés da entrada do usuário
         setbuf(stdin, NULL);
+
         //Limpar a variável para evitar lixo de memória nas repetições
         entrada = '\0';
 
+        system("cls || clear");
         imprimeDecoracao();
-        printf("\n\tLOGADO COMO %s.\n", u.identificador);
-        printf("> Informe um número para escolher uma opção e pressione ENTER:");
+        printf("\n\tLOGADO COMO %s.\n", u.nome);
+        printf("\n> Informe um número para escolher uma opção e pressione ENTER:");
         printf("\n[1] Ver a política de criação de identificadores e senhas");
         printf("\n[2] Ver meus dados");
-        printf("\n[3] Editar meus dados");
-        printf("\n[4] Excluir meu cadastro");
-        printf("\n[5] Logout");
+        printf("\n[3] Excluir meu cadastro");
+        printf("\n[4] Logout");
         printf("\n[0] Encerrar programa");
         imprimeDecoracao();
         printf("\n> Informe o número: ");
@@ -740,7 +722,7 @@ void areaLogada()
         {
         case 0:
             limparEstrutura();
-            printf("\n# Sistema finalizado.\n");
+            printf("\n# SISTEMA FINALIZADO.\n");
             exit(0);
         case 1:
             imprimeDecoracao();
@@ -757,15 +739,9 @@ void areaLogada()
             break;
         case 3:
             imprimeDecoracao();
-            printf("\n\t\t\t>> EDITAR DADOS <<\n\n");
-            editarDados();
-            imprimeDecoracao();
-            break;
-        case 4:
-            imprimeDecoracao();
             printf("\n\t\t\t>> EXCLUIR CONTA <<\n\n");
-            imprimeDecoracao();
-            break;
+            excluirDados();
+            return;
         case 5:
             printf("\n# LOGOUT - Você saiu.\n");
             return;
@@ -794,36 +770,35 @@ void imprimirDados()
  * Busca no arquivo o último id usado e retorna o próximo ID a ser usado
  * @return valor do próximo ID a ser usado e 0 em caso de falha
  */
-void editarDados()
+void excluirDados()
 {
-    FILE *input = fopen(nomeArquivo, "r");         //Arquivo de entrada.
+    dados = fopen(nomeArquivo, "r");               //Arquivo de entrada.
     FILE *output = fopen("transferindo.txt", "w"); //Arquivo de saída.
 
-    int id = 5;
     //Uma string larga o suficiente para extrair o texto total de cada linha.
     char linha[MAX], codigoString[16], texto[MAX];
     // unsigned int linha_selecionada = atoi(argv[LINHA_DO_ARQUIVO]);
     // unsigned int linha_atual = 1;
 
     //Validação para caso o arquivo não possa ser aberto.
-    if (input == NULL || output == NULL)
+    if (dados == NULL || output == NULL)
     {
         printf("\n# FALHA NOS DADOS - O arquivo de dados não pode ser aberto.");
         return;
     }
 
-    while (fgets(texto, MAX, input) != NULL)
+    while (fgets(texto, MAX, dados) != NULL)
     {
         // fscanf(input, "%d | %[^\n]s", &id, linha);
         if (strcmp(u.linhaUsuario, texto))
         {
             fputs(texto, output);
-            printf("\n§ Inserindo no transferir, texto: %s\n%d , %d", texto, strlen(u.linhaUsuario), strlen(texto));
         }
     }
-    fclose(input);
+    fclose(dados);
     fclose(output);
-    // ### - Não está deletando e renomeando
     remove(nomeArquivo);
+    //perror("errno");
     rename("transferindo.txt", nomeArquivo);
+    printf("\n# SUCESSO - Sua conta foi deletada.");
 }
