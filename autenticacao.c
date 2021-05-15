@@ -6,7 +6,7 @@
 #include <locale.h>
 #include <sys/random.h>
 //Tamanho definido do buffer
-#define SALT_SIZE 32
+#define SALT_SIZE 16
 #define PARAMETRO_CRYPT "$6$rounds=20000$%s$"
 /**
 * - Identificador
@@ -26,13 +26,13 @@
 //Ponteiro para o arquivo de dados
 FILE *dados;
 
-char nomeArquivo[] = "dados2.txt";
+char nomeArquivo[] = "dados.txt";
 
 //Declaração da estrutura
 struct usuario u;
 
 void cadastrarUsuario();
-char *tornarMaiusculo(char *string);
+char *alternarCapitalLetras(char *string, int flag);
 short int validarStringPadrao(char *string);
 short int validarIdentificador(char *identificador);
 short int validarSenha(char *senha);
@@ -42,6 +42,9 @@ void mostrarPolitica();
 void gerarSal();
 void criptografarSenha();
 void setSal(char *sal);
+void limparEstrutura();
+void areaLogada();
+void imprimeDecoracao();
 
 /**
  * Estrutura para organização dos valores do usuário
@@ -49,12 +52,12 @@ void setSal(char *sal);
 struct usuario
 {
     int codigo;
-    char nome[50];
-    char sobrenome[50];
-    char email[50];
-    char identificador[50];
+    char nome[51];
+    char sobrenome[51];
+    char email[51];
+    char identificador[16];
     char sal[SALT_SIZE + 1];
-    char senha[50];
+    char senha[31];
     char *senhaCriptografada;
 };
 
@@ -64,12 +67,20 @@ struct usuario
 int main()
 {
     setlocale(LC_ALL, "Portuguese");
+
+    //Verifica se o arquivo pode ser criado/utilizado
+    dados = fopen(nomeArquivo, "a");
+    if (dados == NULL)
+    {
+        printf("\n# FALHA AO INICIAR PROGRAMA\n# O arquivo de dados não pode ser manipulado, verifique.\n");
+        return 0;
+    }
+
     // system("cls || clear");
-    printf("\n_________________________________________________________________________________");
-    printf("\n*********************************************************************************\n");
+    imprimeDecoracao();
     printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO! <<\n");
     char entrada = '0';
-    int op = 0, i = 0;
+    int op = 0;
 
     //Menu de opções
     do
@@ -79,22 +90,20 @@ int main()
         //Limpar a variável para evitar lixo de memória nas repetições
         entrada = '\0';
 
-        printf("\n\n_________________________________________________________________________________");
-        printf("\n*********************************************************************************\n");
+        imprimeDecoracao();
         printf("> Informe um número para escolher uma opção e pressione ENTER:");
         printf("\n[1] Login");
         printf("\n[2] Cadastro");
         printf("\n[3] Ver a política de criação de identificadores e senhas");
         printf("\n[0] Encerrar programa");
-        printf("\n_________________________________________________________________________________");
-        printf("\n*********************************************************************************\n");
+        imprimeDecoracao();
         printf("\n> Informe o número: ");
-        // scanf("%s", &entrada);
-        // system("cls || clear");
+        scanf("%[0-9]s", &entrada);
+        system("cls || clear");
 
         //Converte o char para int para que possa ser verificado no switch
-        // op = entrada - '0';
-        op = 1;
+        op = entrada - '0';
+        // op = 1;
 
         switch (op)
         {
@@ -102,29 +111,25 @@ int main()
             printf("\n# Sistema finalizado.\n");
             return 0;
         case 1:
-            printf("\n_________________________________________________________________________________");
-            printf("\n*********************************************************************************\n");
+            imprimeDecoracao();
             printf("\n\t\t\t>> AUTENTICAÇÃO <<\n\n");
-            printf("\n_________________________________________________________________________________");
-            printf("\n*********************************************************************************\n");
-            if(autenticar()){
-                printf("\n\n\n\n\n\n\n\n\\t\tBem vindo usuário X\n");
+            imprimeDecoracao();
+            if (autenticar())
+            {
+                areaLogada();
+                limparEstrutura();
             }
             break;
         case 2:
-            printf("\n_________________________________________________________________________________");
-            printf("\n*********************************************************************************\n");
+            imprimeDecoracao();
             printf("\n\t\t\t>> CADASTRO <<\n\n");
-            printf("\n_________________________________________________________________________________");
-            printf("\n*********************************************************************************\n");
+            imprimeDecoracao();
             cadastrarUsuario();
             break;
         case 3:
-            printf("\n_________________________________________________________________________________");
-            printf("\n*********************************************************************************\n");
+            imprimeDecoracao();
             printf("\n\t\t>> POLÍTICA DE IDENTIFICADORES E SENHAS <<\n\n");
-            printf("\n_________________________________________________________________________________");
-            printf("\n*********************************************************************************\n");
+            imprimeDecoracao();
             mostrarPolitica();
             break;
         default:
@@ -149,28 +154,27 @@ void limparEstrutura()
     memset(&u.senha[0], 0, sizeof(u.senha));
     memset(&u.senhaCriptografada[0], 0, sizeof(u.senhaCriptografada));
     u.codigo = '0';
-    // u.nome[0] = '\0';
-    // u.sobrenome[0] = '\0';
-    // u.email[0] = '\0';
-    // u.identificador[0] = '\0';
-    // u.sal[0] = '\0';
-    // u.senha[0] = '\0';
-    // u.senhaCriptografada[0] = '\0';
-    printf("# A ESTRUTURA FOI LIMPA.\n");
+    printf("\n# A ESTRUTURA FOI LIMPA.\n");
 }
 
 /**
- * Transforma a String para maiúscula, para facilitar comparações em dados
+ * Transforma a String para maiúscula ou minúscula, para facilitar comparações em dados
+ * @param :string que será alternada para maiuscula ou minuscula, flag: 1 para maiuscula e diferente de 1 para minuscula
  * @return variavel string passada como parâmetro toda maiúscula
  */
-char *tornarMaiusculo(char *string)
+char *alternarCapitalLetras(char *string, int flag)
 {
     int i = 0;
     //Passa por todos os caracteres da String
     for (i; string[i] != '\0'; i++)
     {
-        //Converte o caractere para maiusculo e joga na mesma variavel
-        string[i] = toupper(string[i]);
+        if(flag == 1){
+            //Converte o caractere para maiusculo e joga na mesma variavel
+            string[i] = toupper(string[i]);
+        }else{
+            //Converte o caractere para maiusculo e joga na mesma variavel
+            string[i] = tolower(string[i]);
+        }
     }
     //Acrescenta o caractere nulo no final da string convertida
     string[i] = '\0';
@@ -198,8 +202,8 @@ int getProximoId()
     while (!feof(dados))
     {
         //Lê as linhas até o final do arquivo
-        fscanf(dados, "%i ° %[^\n]s", &id, linha);
-        printf("\n> %d + %s", id, linha);
+        fscanf(dados, "%i | %[^\n]s", &id, linha);
+        printf("\n§ %d + %s", id, linha);
     }
     fclose(dados);
 
@@ -214,14 +218,17 @@ int getProximoId()
  */
 short int validarStringPadrao(char *string)
 {
-    // ### - Remover essa função, posso setar que caracteres podem ser lidos na string do scanf com 'scanf(%[A−Z0−9], texto);'
+    if(strlen(string) > 50){
+        printf("\n# QUANTIDADE LIMITE DE CARACTERES: por favor não ultrapasse a quantidade de 50 caracteres, você inseriu %d caracteres!\n", strlen(string));
+        return 0;
+    }
     //Loop para passar pelos caracteres da string
     for (int i = 0; i < strlen(string); i++)
     {
-        //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é alfabético e minusculo
-        if (!isalpha(string[i]) && !isspace(string[i]))
+        //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é alfabético
+        if (!isalpha(string[i]))
         {
-            printf("\n# CARACTERE INVÁLIDO: por favor insira somente caracteres alfabéticos nesse campo.\n# '%c' não é alfabético ou espaço!\n", string[i]);
+            printf("\n# CARACTERE INVÁLIDO: por favor insira somente caracteres alfabéticos nesse campo, sem espaços ou pontuações.\n# '%c' não é alfabético!\n", string[i]);
             return 0;
         }
     }
@@ -229,74 +236,126 @@ short int validarStringPadrao(char *string)
 }
 
 /**
+ * Verifica se a string passada como parâmetro contem somente caracteres permitidos para e-mail
+ * @return 0 caso string inválida e 1 caso a string seja válida
+ */
+short int validarStringEmail(char *string)
+{
+    //Loop para passar pelos caracteres da string
+    // for (int i = 0; i < strlen(string); i++)
+    // {
+    //     //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é alfabético
+    //     if (!isalnum(string[i]) && string[i] != '.' && string[i] != '_' && string[i] != '-' && string[i] != '@')
+    //     {
+    //         printf("\n# CARACTERE INVÁLIDO: por favor insira somente caracteres alfabéticos nesse campo, sem espaços ou pontuações.\n# '%c' não é alfabético!\n", string[i]);
+    //         return 0;
+    //     }
+    // }
+    // return 1;
+
+    char usuario[256], site[256], dominio[256];
+
+    if(strlen(string) > 50){
+        printf("\n# QUANTIDADE LIMITE DE CARACTERES: por favor não ultrapasse a quantidade de 50 caracteres, você inseriu %d caracteres!\n", strlen(string));
+        return 0;
+    }
+    // ### - Verificar
+    if (sscanf(string, "%[^@ \t\n]@%[^. \t\n].%3[^ \t\n]", usuario, site, dominio) != 3){
+        printf("\n# E-MAIL INVÁLIDO: por favor verifique o e-mail digitado\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * Apenas imprime as linhas de separação
+ */
+void imprimeDecoracao()
+{
+    printf("\n_________________________________________________________________________________");
+    printf("\n*********************************************************************************\n");
+}
+/**
  * Função para cadastrar novos usuários
  */
 void cadastrarUsuario()
 {
+    //Variável para fazer a entrada de valores antes de validação
+    char temp[2048];
+    memset(&temp[0], 0, sizeof(temp));
+
     //Declara variavel que vai unir todos os valores para inserir no arquivo de uma só vez
     char linha[1000];
 
     //Variavel que será o separador dos campos no arquivo
-    char separador[] = " ° ";
+    char separador[] = " | ";
 
     //Variavel string que recebera o valor de código (inteiro), para utilizar na concatenação
     char codigoString[5];
 
     //Define o ID do usuário que está se cadastrando
     u.codigo = getProximoId();
+
     //Converte o valor inteiro para String, permitindo usá-la posteriormente na função strcat
     sprintf(codigoString, "%d", u.codigo);
 
     //Recolhendo informações do cadastro
-    printf("\n\n> Forneça as informações necessárias para efetuar o cadastro:\n");
+    printf("\n> Forneça as informações necessárias para efetuar o cadastro:\n");
 
     //loop para validação do nome
-    // do
-    // {
-    //     printf("> Informe seu primeiro nome: ");
-    //     setbuf(stdin, NULL);
-    //     scanf("%s", &u.nome);
-    //     scanf("%[^\n]s", &u.nome);
-    // } while (!validarStringPadrao(u.nome));
-    strcpy(u.nome, "MeuPrimeiroNome");
-    tornarMaiusculo(u.nome);
+    do
+    {
+        printf("\n> Informe seu primeiro nome: ");
+        setbuf(stdin, NULL);
+        scanf("%[^\n]s", &temp);
+    } while (!validarStringPadrao(temp));
+    strcpy(u.nome, temp);
+    alternarCapitalLetras(u.nome, 1);
+    memset(&temp[0], 0, sizeof(temp));
 
     //loop validação sobrenome
-    // do
-    // {
-    //     printf("> Agora, informe seu sobrenome: ");
-    //     setbuf(stdin, NULL);
-    //     scanf("%[^\n]s", &u.sobrenome);
-    // } while (!validarStringPadrao(u.sobrenome));
-    strcpy(u.sobrenome, "MeuSobrenome");
-    tornarMaiusculo(u.sobrenome);
+    do
+    {
+        printf("> Agora, informe seu sobrenome: ");
+        setbuf(stdin, NULL);
+        scanf("%[^\n]s", &temp);
+    } while (!validarStringPadrao(temp));
+    strcpy(u.sobrenome, temp);
+    alternarCapitalLetras(u.sobrenome, 1);
+    memset(&temp[0], 0, sizeof(temp));
 
-    //entrada do e-mail
-    // printf("> Informe seu e-mail: ");
-    // setbuf(stdin, NULL);
-    // scanf("%[^\n]s", &u.email);
-    strcpy(u.email, "email@hotmail.com");
-    tornarMaiusculo(u.email);
+    //loop validação do e-mail
+    do
+    {
+        printf("> Informe seu e-mail: ");
+        setbuf(stdin, NULL);
+        scanf("%[^\n]s", &temp);
+    } while (!validarStringEmail(temp));
+    strcpy(u.email, temp);
+    alternarCapitalLetras(u.email, 1);
+    memset(&temp[0], 0, sizeof(temp));
 
     //entrada do identificador
-    // do
-    // {
-    //     printf("> Crie seu login: ");
-    //     setbuf(stdin, NULL);
-    //     scanf("%[^\n]s", &u.identificador);
-    // } while (!validarIdentificador(u.identificador));
-    strcpy(u.identificador, "IdentificadorLegal");
+    do
+    {
+        printf("> Crie seu login: ");
+        setbuf(stdin, NULL);
+        scanf("%[^\n]s", &temp);
+    } while (!validarIdentificador(temp));
+    strcpy(u.identificador, temp);
+    memset(&temp[0], 0, sizeof(temp));
+    // ### - Validar se o identificador está disponível (ainda não cadastrado)
 
-    //loop da senha
-    // do
-    // {
-    //     // printf("> Crie uma senha: ");
-    //     setbuf(stdin, NULL);
-    //     // scanf("%[^\n]s", &u.senha);
-    //     strcpy(u.senha, getpass("> Crie uma senha: "));
-    //     // printf("\n%s", u.senha);
-    // } while (!validarSenha(u.senha));
-    strcpy(u.senha, "53nh4_Forte!");
+    //loop de validação da senha
+    do
+    {
+        setbuf(stdin, NULL);
+        strcpy(temp, getpass("> Crie uma senha: "));
+    } while (!validarSenha(temp));
+    strcpy(u.senha, temp);
+    memset(&temp[0], 0, sizeof(temp));
+    // ### - solicitar confirmação da senha e comparar
 
     // system("cls || clear");
 
@@ -315,7 +374,8 @@ void cadastrarUsuario()
     criptografarSenha();
 
     //zerar a variável antes de começar a utilizá-la, para evitar que tenha valores prévios gravados
-    linha[0] = '\0';
+    memset(&linha[0], 0, sizeof(linha));
+    
     //Concatenção de valores na variavel para jogar no arquivo somente uma string
     strcat(linha, codigoString);
     strcat(linha, separador);
@@ -334,12 +394,11 @@ void cadastrarUsuario()
     //Inserir a string do arquivo
     fputs(linha, dados);
 
-    printf("\n# Cadastro ralizado com sucesso!\n> %s\n", linha);
+    printf("\n# SUCESSO - Cadastro ralizado!\n§ %s\n", linha);
 
     //Fecha o arquivo
     fclose(dados);
 
-    // printf("\n\nSeu nome completo é %s %s!\nSua senha é '%s'.\n", u.nome, u.sobrenome, u.senha);
     limparEstrutura();
 }
 
@@ -365,7 +424,7 @@ void gerarSal()
     }
 
     //Retirei o ':' estava causando problema na função crypt, fazendo-a retornar NULL quando aparecia no sal
-    char lista_caracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/,.-+=~`<>";
+    char lista_caracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
 
     // printf("Saída PRNG_v2 (unsigned char) = ");
     // for (int indice = 0; indice < SALT_SIZE; indice++)
@@ -397,16 +456,14 @@ void criptografarSenha()
 
     //Variavel que armazena o valor do parâmetro para função crypt
     char idSaltSenha[strlen(PARAMETRO_CRYPT) + SALT_SIZE];
-    printf("\n>Tamanho alocado para o idSaltSenha: %d", strlen(PARAMETRO_CRYPT) + SALT_SIZE);
+    printf("\n§ Tamanho alocado para o idSaltSenha: %d", strlen(PARAMETRO_CRYPT) + SALT_SIZE);
 
     //Incluindo o valor do sal no valor do parâmetro da função crypt e definindo na variavel idSaltSenha
     sprintf(idSaltSenha, PARAMETRO_CRYPT, u.sal);
-    printf("\n>IdSaltSenha: size %d : %s", strlen(idSaltSenha), idSaltSenha);
+    printf("\n§ IdSaltSenha: size %d : %s", strlen(idSaltSenha), idSaltSenha);
 
-    // ### - Verificar se o hash gerado está correto
-    //Aqui, se a senha criptografada retornar NULL, fazer validação.
     u.senhaCriptografada = crypt(u.senha, idSaltSenha);
-    printf("\n>>Salted Hash com SHA512 = %s\n", crypt(u.senha, idSaltSenha));
+    printf("\n§ Salted Hash com SHA512 = %s\n", crypt(u.senha, idSaltSenha));
 }
 
 /**
@@ -415,6 +472,10 @@ void criptografarSenha()
  */
 short int validarIdentificador(char *identificador)
 {
+    char identificadorMaiusculo[2048];
+    strcpy(identificadorMaiusculo, identificador);
+    alternarCapitalLetras(identificadorMaiusculo, 1);
+
     //Verifica tamanho do identificador
     if (strlen(identificador) < 5 || strlen(identificador) > 15)
     {
@@ -423,31 +484,27 @@ short int validarIdentificador(char *identificador)
     }
 
     //Loop para passar pelos caracteres do identificador
-    // ### - Remover esse loop e selecionar a entrada no scanf(%[a-zA-Z.]s)
     for (int i = 0; i < strlen(identificador); i++)
     {
-        if (!isalpha(identificador[i]) && identificador[i] != '.')
+        if (!isalnum(identificador[i]) && identificador[i] != '.')
         {
-            printf("\n# IDENTIFICADOR INVÁLIDO - Contém caracteres não permitidos\n# O identificador pode conter somente caracteres alfanuméricos e ponto final.");
+            printf("\n# IDENTIFICADOR INVÁLIDO - Contém caracteres não permitidos\n# O identificador pode conter somente caracteres alfanuméricos e ponto final.\n");
             return 0;
         }
-        //Verificar se o identificador possui o nome, sobrenome ou email cadastrados.
-        // if (&identificador[i] == &)
-        // {
-        // }
     }
 
-    //Se o identificador for igual ao nome, sobrenome ou e-mail, é inválido.
-    if (!strcmp(identificador, u.nome) || !strcmp(identificador, u.sobrenome) || !strcmp(identificador, u.email))
+    //Se o identificador for igual ao nome ou sobrenome, é inválido.
+    if (!strcmp(identificadorMaiusculo, u.nome) || !strcmp(identificadorMaiusculo, u.sobrenome))
     {
-        printf("\n# IDENTIFICADOR INVÁLIDO - Identificador não pode ser seu nome, sobrenome ou e-mail!\n");
+        printf("\n# IDENTIFICADOR INVÁLIDO - Identificador não pode ser seu nome ou sobrenome!\n");
         return 0;
     }
 
     return 1;
 }
 
-/** Função para verificar se a senha cumpre com a política de senhas
+/** 
+ * Função para verificar se a senha cumpre com a política de senhas
  * @return valor 1 em caso de senha válida e 0 caso inválida
  */
 short int validarSenha(char *senha)
@@ -551,7 +608,7 @@ short int validarSenha(char *senha)
  */
 short int autenticar()
 {
-    char identificadorArquivo[50], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[50], sobrenomeArquivo[50], emailArquivo[50], temp[1000];
+    char identificadorArquivo[16], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[51], sobrenomeArquivo[51], emailArquivo[51], temp[1024];
     int idArquivo = 0;
     printf("> Informe seus dados\n> Login: ");
     scanf("%s", &u.identificador);
@@ -573,15 +630,26 @@ short int autenticar()
     while (!feof(dados))
     {
         //Lê as linhas até o final do arquivo
-        fscanf(dados, "%d ° %s ° %s ° %s ° %[^\n]s", &idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, temp);
+        fscanf(dados, "%d | %s | %s | %s | %s | %s | %s", &idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, usuarioArquivo, sobrenomeArquivo, emailArquivo);
         strcpy(u.sal, saltArquivo);
         criptografarSenha();
 
-        printf("\n\n\n> ID arq: %d\nidentificador: %s\n\t> Sal: %s\n\t\t> Hash: %s\n\t\t\t> Temp: %s", idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, temp);
+        printf("\n\n\n> ID arq: %d\nidentificador: %s\n\t> Sal: %s\n\t\t> Hash: %s\n\t\t\t> Usuario: %s\n\t\t\t> Sobrenome: %s\n\t\t\t> email: %s", idArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, usuarioArquivo, sobrenomeArquivo, emailArquivo);
 
         if (!strcmp(identificadorArquivo, u.identificador) && !strcmp(criptografiaArquivo, u.senhaCriptografada))
         {
             printf("\n\n\n\n\n\n\n# SUCESSO - Agora você está logado!\n\n\n\n\n\n");
+
+            //Copiando dados para a estrutura
+            u.codigo = idArquivo;
+            strcpy(u.nome, nomeArquivo);
+            strcpy(u.sobrenome, sobrenomeArquivo);
+            strcpy(u.email, emailArquivo);
+            strcpy(u.identificador, identificadorArquivo);
+            // ### - Verificar necessidade de trazer esses dados
+            strcpy(u.sal, saltArquivo);
+            strcpy(u.senhaCriptografada, criptografiaArquivo);
+
             fclose(dados);
             limparEstrutura();
             return 1;
@@ -614,4 +682,79 @@ void mostrarPolitica()
     printf("\n-Não pode conter mais de 2 números ordenados em sequência;");
     printf("\n-Não pode conter números repetidos em sequência;");
     printf("\n-Não pode conter caracteres que não sejam alfanuméricos, especiais ou espaço.\n");
+}
+
+/**
+ * Opções para o usuário autenticado
+ */
+void areaLogada()
+{
+    // system("cls || clear");
+    char entrada = '0';
+    int op = 0;
+    // ### - Não está pegando os dados do usuário
+    imprimeDecoracao();
+    printf("\n\tBEM VINDO %s!\n", u.nome);
+
+    //Menu de opções
+    do
+    {
+        //Limpa o buffer do teclado para evitar que lixo de memória seja lido ao invés da entrada do usuário
+        setbuf(stdin, NULL);
+        //Limpar a variável para evitar lixo de memória nas repetições
+        entrada = '\0';
+
+        imprimeDecoracao();
+        printf("\n\tLOGADO COMO %s.\n", u.identificador);
+        printf("> Informe um número para escolher uma opção e pressione ENTER:");
+        printf("\n[1] Ver a política de criação de identificadores e senhas");
+        printf("\n[2] Ver meus dados");
+        printf("\n[3] Editar meus dados");
+        printf("\n[4] Excluir meu cadastro");
+        printf("\n[5] Logout");
+        printf("\n[0] Encerrar programa");
+        imprimeDecoracao();
+        printf("\n> Informe o número: ");
+        scanf("%[0-9]s", &entrada);
+
+        //Converte o char para int para que possa ser verificado no switch
+        op = entrada - '0';
+        // op = 1;
+
+        switch (op)
+        {
+        case 0:
+            printf("\n# Sistema finalizado.\n");
+            limparEstrutura();
+            exit(0);
+        case 1:
+            imprimeDecoracao();
+            printf("\n\t\t>> POLÍTICA DE IDENTIFICADORES E SENHAS <<\n\n");
+            imprimeDecoracao();
+            mostrarPolitica();
+            break;
+        case 2:
+            imprimeDecoracao();
+            printf("\n\t\t\t>> MEUS DADOS <<\n\n");
+            printf("");
+            imprimeDecoracao();
+            break;
+        case 3:
+            imprimeDecoracao();
+            printf("\n\t\t\t>> EDITAR DADOS <<\n\n");
+            imprimeDecoracao();
+            break;
+        case 4:
+            imprimeDecoracao();
+            printf("\n\t\t\t>> EXCLUIR CONTA <<\n\n");
+            imprimeDecoracao();
+            break;
+        case 5:
+            printf("\n# LOGOUT - Você saiu.\n");
+            return;
+        default:
+            printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+            break;
+        }
+    } while (1);
 }
