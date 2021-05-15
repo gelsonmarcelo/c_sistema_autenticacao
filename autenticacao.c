@@ -45,6 +45,7 @@ void setSal(char *sal);
 void limparEstrutura();
 void areaLogada();
 void imprimeDecoracao();
+void imprimirDados();
 
 /**
  * Estrutura para organização dos valores do usuário
@@ -190,7 +191,7 @@ int getProximoId()
 {
     dados = fopen(nomeArquivo, "r");
     int id = 0;
-    char linha[1000];
+    char linha[2048];
 
     //Validação para caso o arquivo não possa ser aberto.
     if (dados == NULL)
@@ -608,14 +609,14 @@ short int validarSenha(char *senha)
  */
 short int autenticar()
 {
-    char identificadorArquivo[16], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[51], sobrenomeArquivo[51], emailArquivo[51], temp[1024];
+    char identificadorArquivo[16], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[51], sobrenomeArquivo[51], emailArquivo[51];
     int idArquivo = 0;
-    printf("> Informe seus dados\n> Login: ");
+    printf("> Informe seus dados:\n> LOGIN: ");
     scanf("%s", &u.identificador);
     // printf("\n> Senha: ");
     // scanf("%s", &u.senha);
-    strcpy(u.senha, getpass("\n> Senha: "));
-    printf("\nLogin informado: %s | senha: %s", u.identificador, u.senha);
+    strcpy(u.senha, getpass("> SENHA: "));
+    printf("\nLogin informado: %s | senha: %s\n", u.identificador, u.senha);
 
     //Abrir o arquivo com parâmetro de read, apenas lê.
     dados = fopen(nomeArquivo, "r");
@@ -642,7 +643,7 @@ short int autenticar()
 
             //Copiando dados para a estrutura
             u.codigo = idArquivo;
-            strcpy(u.nome, nomeArquivo);
+            strcpy(u.nome, usuarioArquivo);
             strcpy(u.sobrenome, sobrenomeArquivo);
             strcpy(u.email, emailArquivo);
             strcpy(u.identificador, identificadorArquivo);
@@ -651,7 +652,6 @@ short int autenticar()
             strcpy(u.senhaCriptografada, criptografiaArquivo);
 
             fclose(dados);
-            limparEstrutura();
             return 1;
         }
         else
@@ -674,7 +674,7 @@ void mostrarPolitica()
     printf("\n-Não pode ser utilizado nome, sobrenome ou email;");
     printf("\n-Pode conter somente caracteres alfanuméricos e ponto final;");
     printf("\n-Deve ter no mínimo 5 caracteres e no máximo 15;");
-    printf("\n\n\tSENHA");
+    printf("\n\n\t\tSENHA");
     printf("\n-Deve conter no mínimo 8 caracteres e no máximo 30;");
     printf("\n-Deve conter, no mínimo, 2 caracteres especiais;");
     printf("\n-Deve conter números e letras;");
@@ -724,8 +724,8 @@ void areaLogada()
         switch (op)
         {
         case 0:
-            printf("\n# Sistema finalizado.\n");
             limparEstrutura();
+            printf("\n# Sistema finalizado.\n");
             exit(0);
         case 1:
             imprimeDecoracao();
@@ -736,8 +736,9 @@ void areaLogada()
         case 2:
             imprimeDecoracao();
             printf("\n\t\t\t>> MEUS DADOS <<\n\n");
-            printf("");
+            imprimirDados();
             imprimeDecoracao();
+
             break;
         case 3:
             imprimeDecoracao();
@@ -757,4 +758,47 @@ void areaLogada()
             break;
         }
     } while (1);
+}
+
+/**
+ * Imprime os dados do usuário
+ */
+void imprimirDados(){
+    printf("\n> Código: %d", u.codigo);
+    printf("\n> Nome: %s", u.nome);
+    printf("\n> Sobrenome: %s", u.sobrenome);
+    printf("\n> E-mail: %s", u.email);
+    printf("\n> Login: %s", u.identificador);
+    printf("\n> Salt: %s", u.sal);
+    printf("\n> Senha criptografada: %s\n", u.senhaCriptografada);
+}
+
+/**
+ * Busca no arquivo o último id usado e retorna o próximo ID a ser usado
+ * @return valor do próximo ID a ser usado e 0 em caso de falha
+ */
+int editarDados()
+{
+    dados = fopen(nomeArquivo, "r+");
+    int id = 0;
+    char linha[2048];
+
+    //Validação para caso o arquivo não possa ser aberto.
+    if (dados == NULL)
+    {
+        printf("\n# FALHA NOS DADOS - O arquivo de dados não pode ser aberto.");
+        return 0;
+    }
+
+    while (!feof(dados))
+    {
+        //Lê as linhas até o final do arquivo
+        fscanf(dados, "%i | %[^\n]s", &id, linha);
+        printf("\n§ %d + %s", id, linha);
+    }
+    fclose(dados);
+
+    // printf("\n%i", id);
+    //O id lido por último é o ID do último usuário cadastrado
+    return id + 1;
 }
