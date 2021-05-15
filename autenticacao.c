@@ -5,9 +5,16 @@
 #include <ctype.h>
 #include <locale.h>
 #include <sys/random.h>
-//Tamanho definido do buffer
+
+//Tamanho definido do sal
 #define SALT_SIZE 16
+//Tamanho máximo das strings de leitura
+#define MAX 2048
+//Parâmetro da função crypt
 #define PARAMETRO_CRYPT "$6$rounds=20000$%s$"
+//Variavel que será o separador dos campos no arquivo
+#define SEPARADOR " | "
+
 /**
 * - Identificador
 * Para criação do identificador, não pode ser utilizado nome, sobrenome ou email;
@@ -46,6 +53,7 @@ void limparEstrutura();
 void areaLogada();
 void imprimeDecoracao();
 void imprimirDados();
+void editarDados();
 
 /**
  * Estrutura para organização dos valores do usuário
@@ -60,6 +68,7 @@ struct usuario
     char sal[SALT_SIZE + 1];
     char senha[31];
     char *senhaCriptografada;
+    char linhaUsuario[MAX];
 };
 
 /**
@@ -154,6 +163,7 @@ void limparEstrutura()
     memset(&u.sal[0], 0, sizeof(u.sal));
     memset(&u.senha[0], 0, sizeof(u.senha));
     memset(&u.senhaCriptografada[0], 0, sizeof(u.senhaCriptografada));
+    memset(&u.linhaUsuario[0], 0, sizeof(u.linhaUsuario));
     u.codigo = '0';
     printf("\n# A ESTRUTURA FOI LIMPA.\n");
 }
@@ -169,10 +179,13 @@ char *alternarCapitalLetras(char *string, int flag)
     //Passa por todos os caracteres da String
     for (i; string[i] != '\0'; i++)
     {
-        if(flag == 1){
+        if (flag == 1)
+        {
             //Converte o caractere para maiusculo e joga na mesma variavel
             string[i] = toupper(string[i]);
-        }else{
+        }
+        else
+        {
             //Converte o caractere para maiusculo e joga na mesma variavel
             string[i] = tolower(string[i]);
         }
@@ -203,7 +216,7 @@ int getProximoId()
     while (!feof(dados))
     {
         //Lê as linhas até o final do arquivo
-        fscanf(dados, "%i | %[^\n]s", &id, linha);
+        fscanf(dados, "%d | %[^\n]s", &id, linha);
         printf("\n§ %d + %s", id, linha);
     }
     fclose(dados);
@@ -219,7 +232,8 @@ int getProximoId()
  */
 short int validarStringPadrao(char *string)
 {
-    if(strlen(string) > 50){
+    if (strlen(string) > 50)
+    {
         printf("\n# QUANTIDADE LIMITE DE CARACTERES: por favor não ultrapasse a quantidade de 50 caracteres, você inseriu %d caracteres!\n", strlen(string));
         return 0;
     }
@@ -256,12 +270,14 @@ short int validarStringEmail(char *string)
 
     char usuario[256], site[256], dominio[256];
 
-    if(strlen(string) > 50){
+    if (strlen(string) > 50)
+    {
         printf("\n# QUANTIDADE LIMITE DE CARACTERES: por favor não ultrapasse a quantidade de 50 caracteres, você inseriu %d caracteres!\n", strlen(string));
         return 0;
     }
     // ### - Verificar
-    if (sscanf(string, "%[^@ \t\n]@%[^. \t\n].%3[^ \t\n]", usuario, site, dominio) != 3){
+    if (sscanf(string, "%[^@ \t\n]@%[^. \t\n].%3[^ \t\n]", usuario, site, dominio) != 3)
+    {
         printf("\n# E-MAIL INVÁLIDO: por favor verifique o e-mail digitado\n");
         return 0;
     }
@@ -289,11 +305,8 @@ void cadastrarUsuario()
     //Declara variavel que vai unir todos os valores para inserir no arquivo de uma só vez
     char linha[1000];
 
-    //Variavel que será o separador dos campos no arquivo
-    char separador[] = " | ";
-
     //Variavel string que recebera o valor de código (inteiro), para utilizar na concatenação
-    char codigoString[5];
+    char codigoString[16];
 
     //Define o ID do usuário que está se cadastrando
     u.codigo = getProximoId();
@@ -376,20 +389,20 @@ void cadastrarUsuario()
 
     //zerar a variável antes de começar a utilizá-la, para evitar que tenha valores prévios gravados
     memset(&linha[0], 0, sizeof(linha));
-    
+
     //Concatenção de valores na variavel para jogar no arquivo somente uma string
     strcat(linha, codigoString);
-    strcat(linha, separador);
+    strcat(linha, SEPARADOR);
     strcat(linha, u.identificador);
-    strcat(linha, separador);
+    strcat(linha, SEPARADOR);
     strcat(linha, u.sal);
-    strcat(linha, separador);
+    strcat(linha, SEPARADOR);
     strcat(linha, u.senhaCriptografada);
-    strcat(linha, separador);
+    strcat(linha, SEPARADOR);
     strcat(linha, u.nome);
-    strcat(linha, separador);
+    strcat(linha, SEPARADOR);
     strcat(linha, u.sobrenome);
-    strcat(linha, separador);
+    strcat(linha, SEPARADOR);
     strcat(linha, u.email);
     strcat(linha, "\n");
     //Inserir a string do arquivo
@@ -425,7 +438,7 @@ void gerarSal()
     }
 
     //Retirei o ':' estava causando problema na função crypt, fazendo-a retornar NULL quando aparecia no sal
-    char lista_caracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
+    char listaCaracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./";
 
     // printf("Saída PRNG_v2 (unsigned char) = ");
     // for (int indice = 0; indice < SALT_SIZE; indice++)
@@ -439,10 +452,10 @@ void gerarSal()
         //MOD quantidade de caracteres da lista, o resultado será o índice que contém o caractere usado.
         //Evitando assim que surjam caracteres que não podem ser interpretados pela codificação do SO.
         // printf("\n\nContador = %i \nSequencia do Sal: %s \nCaractere escolhido da lista: %c", i, u.sal, lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))]);
-        printf("%c ", lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))]);
-        u.sal[i] = lista_caracteres[((unsigned char)buffer[i]) % (strlen(lista_caracteres))];
+        printf("%c ", listaCaracteres[((unsigned char)buffer[i]) % (strlen(listaCaracteres))]);
+        u.sal[i] = listaCaracteres[((unsigned char)buffer[i]) % (strlen(listaCaracteres))];
     }
-    u.sal[32] = '\0';
+    u.sal[SALT_SIZE + 1] = '\0';
     printf("\n>Sal que foi para estrutura: %s", u.sal);
 }
 
@@ -651,6 +664,8 @@ short int autenticar()
             strcpy(u.sal, saltArquivo);
             strcpy(u.senhaCriptografada, criptografiaArquivo);
 
+            sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s\n", u.codigo, u.identificador, u.sal, u.senhaCriptografada, u.nome, u.sobrenome, u.email);
+            printf("§ Teste linhaUsuario:\n%s", u.linhaUsuario);
             fclose(dados);
             return 1;
         }
@@ -743,6 +758,7 @@ void areaLogada()
         case 3:
             imprimeDecoracao();
             printf("\n\t\t\t>> EDITAR DADOS <<\n\n");
+            editarDados();
             imprimeDecoracao();
             break;
         case 4:
@@ -763,7 +779,8 @@ void areaLogada()
 /**
  * Imprime os dados do usuário
  */
-void imprimirDados(){
+void imprimirDados()
+{
     printf("\n> Código: %d", u.codigo);
     printf("\n> Nome: %s", u.nome);
     printf("\n> Sobrenome: %s", u.sobrenome);
@@ -777,28 +794,36 @@ void imprimirDados(){
  * Busca no arquivo o último id usado e retorna o próximo ID a ser usado
  * @return valor do próximo ID a ser usado e 0 em caso de falha
  */
-int editarDados()
+void editarDados()
 {
-    dados = fopen(nomeArquivo, "r+");
-    int id = 0;
-    char linha[2048];
+    FILE *input = fopen(nomeArquivo, "r");         //Arquivo de entrada.
+    FILE *output = fopen("transferindo.txt", "w"); //Arquivo de saída.
+
+    int id = 5;
+    //Uma string larga o suficiente para extrair o texto total de cada linha.
+    char linha[MAX], codigoString[16], texto[MAX];
+    // unsigned int linha_selecionada = atoi(argv[LINHA_DO_ARQUIVO]);
+    // unsigned int linha_atual = 1;
 
     //Validação para caso o arquivo não possa ser aberto.
-    if (dados == NULL)
+    if (input == NULL || output == NULL)
     {
         printf("\n# FALHA NOS DADOS - O arquivo de dados não pode ser aberto.");
-        return 0;
+        return;
     }
 
-    while (!feof(dados))
+    while (fgets(texto, MAX, input) != NULL)
     {
-        //Lê as linhas até o final do arquivo
-        fscanf(dados, "%i | %[^\n]s", &id, linha);
-        printf("\n§ %d + %s", id, linha);
+        // fscanf(input, "%d | %[^\n]s", &id, linha);
+        if (strcmp(u.linhaUsuario, texto))
+        {
+            fputs(texto, output);
+            printf("\n§ Inserindo no transferir, texto: %s\n%d , %d", texto, strlen(u.linhaUsuario), strlen(texto));
+        }
     }
-    fclose(dados);
-
-    // printf("\n%i", id);
-    //O id lido por último é o ID do último usuário cadastrado
-    return id + 1;
+    fclose(input);
+    fclose(output);
+    // ### - Não está deletando e renomeando
+    remove(nomeArquivo);
+    rename("transferindo.txt", nomeArquivo);
 }
