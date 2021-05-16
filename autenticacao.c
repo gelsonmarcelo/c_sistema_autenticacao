@@ -117,12 +117,11 @@ int main()
         printf("\n[0] Encerrar programa");
         imprimirDecoracao();
         printf("\n> Informe o número: ");
-        scanf("%1[0-9]", &entrada);
+        scanf("%[0-9]", &entrada);
         system("cls || clear");
 
         //Converte o char para int para que possa ser verificado no switch
         op = entrada - '0';
-        // op = 1;
 
         switch (op)
         {
@@ -378,7 +377,7 @@ short int autenticar()
             strcpy(u.salt, saltArquivo);
             strcpy(u.senhaCriptografada, criptografiaArquivo);
 
-            //### (Porque não usei o ID?)- Salvar o formato da linha desse usuário autenticado para encontrar posteriormente
+            //Salvar o formato da linha desse usuário autenticado para encontrar posteriormente
             sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email);
             //Fecha o arquivo
             fclose(dados);
@@ -772,7 +771,7 @@ void areaLogada()
         printf("\n[0] Encerrar programa");
         imprimirDecoracao();
         printf("\n> Informe o número: ");
-        scanf("%1[0-9]", &entrada);
+        scanf("%[0-9]", &entrada);
 
         //Converte o char para int para que possa ser verificado no switch
         op = entrada - '0';
