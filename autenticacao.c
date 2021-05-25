@@ -31,10 +31,11 @@
 * Não pode conter caracteres que não sejam alfanuméricos, caracteres especiais ou espaço.
 **/
 
-//Ponteiro para o arquivo de dados
-FILE *dados;
+//Ponteiro para o arquivos
+FILE *dados = NULL, *notas = NULL;
 
-char nomeArquivo[] = "dados.txt";
+char arquivoUsuarios[] = "dados.txt";
+char arquivoNotas[] = "notas.txt";
 
 //Declaração da estrutura
 struct Usuario u;
@@ -57,6 +58,7 @@ void areaLogada();
 void imprimirDados();
 void excluirDados();
 void imprimirDecoracao();
+short int testarArquivo(char *nomeArquivo);
 
 /**
  * Estrutura para organização dos dados do usuário
@@ -82,14 +84,13 @@ int main()
 {
     setlocale(LC_ALL, "Portuguese");
 
-    //Verifica se o arquivo pode ser criado/utilizado
-    dados = fopen(nomeArquivo, "a");
-    if (dados == NULL)
+    //Verifica arquivos necessários para o programa iniciar
+    if (testarArquivo(arquivoUsuarios) || testarArquivo(arquivoNotas))
     {
-        printf("\n# FALHA AO INICIAR PROGRAMA\n# O arquivo de dados não pode ser manipulado, verifique.\n");
+        printf("\n# ERRO FATAL - um arquivo de dados essencial não pode ser aberto, o programa não pode ser iniciado.\n");
         return 0;
     }
-    fclose(dados);
+
     imprimirDecoracao();
     printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO! <<\n");
     char entrada = '0';
@@ -166,16 +167,16 @@ int main()
  */
 int pegarProximoId()
 {
-    dados = fopen(nomeArquivo, "r");
     int id = 0;
     char linha[2048];
 
-    //Validação para caso o arquivo não possa ser aberto.
-    if (dados == NULL)
-    {
-        printf("\n# FALHA NOS DADOS - O arquivo de dados não pode ser aberto.");
+    //Teste do arquivo
+    if (testarArquivo(arquivoUsuarios))
         return 0;
-    }
+
+    //Abrindo arquivo
+    dados = fopen(arquivoUsuarios, "r");
+
     while (!feof(dados))
     {
         //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
@@ -295,11 +296,16 @@ void cadastrarUsuario()
         }
         else
         {
-            if(!strcmp(temp, "1")){
+            if (!strcmp(temp, "1"))
+            {
                 strcpy(u.papel, "COORDENADOR");
-            }else if(!strcmp(temp, "2")){
+            }
+            else if (!strcmp(temp, "2"))
+            {
                 strcpy(u.papel, "PROFESSOR");
-            }else{
+            }
+            else
+            {
                 strcpy(u.papel, "ESTUDANTE");
             }
             memset(&temp[0], 0, sizeof(temp));
@@ -308,16 +314,16 @@ void cadastrarUsuario()
     } while (1);
 
     /*Finalizada a coleta dos dados, agora, a gravação no arquivo será feita*/
-    //Abrir o arquivo com parâmetro "a" de append, não sobrescreve as informações, apenas adiciona.
-    dados = fopen(nomeArquivo, "a");
     //Validação para caso o arquivo não possa ser aberto.
-    if (dados == NULL)
-    {
-        printf("\n# ERRO FATAL - O arquivo de dados não pode ser aberto.\n");
+    if (testarArquivo(arquivoUsuarios))
         return;
-    }
+
+    //Abrir o arquivo com parâmetro "a" de append, não sobrescreve as informações, apenas adiciona.
+    dados = fopen(arquivoUsuarios, "a");
+
     //Gerar o valor pseudoaleatório do salt desse usuário
     gerarSalt();
+
     //Realiza a criptografia da senha com a função 'crypt'
     criptografarSenha();
 
@@ -378,14 +384,13 @@ short int autenticar()
     //Lê a senha com ECHO desativado e copia a leitura para a variável u.senha do usuário
     strcpy(u.senha, getpass("\n> SENHA: "));
 
-    //Abrir o arquivo com parâmetro "r" de read, apenas lê.
-    dados = fopen(nomeArquivo, "r");
     //Validação para caso o arquivo não possa ser aberto.
-    if (dados == NULL)
-    {
-        printf("\n# ERRO FATAL - O arquivo de dados não pode ser aberto.\n");
+    if (testarArquivo(arquivoUsuarios))
         return 0;
-    }
+
+    //Abrir o arquivo com parâmetro "r" de read, apenas lê.
+    dados = fopen(arquivoUsuarios, "r");
+
     //Loop que passa por todas as linhas do arquivo
     while (!feof(dados))
     {
@@ -406,7 +411,6 @@ short int autenticar()
             strcpy(u.identificador, identificadorArquivo);
             strcpy(u.salt, saltArquivo);
             strcpy(u.senhaCriptografada, criptografiaArquivo);
-
 
             //Salvar o formato da linha desse usuário autenticado para encontrar posteriormente
             sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %s\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
@@ -564,14 +568,14 @@ short int validarIdentificador(char *identificador)
     }
 
     /*Verifica se o identificador já foi utilizado*/
-    //Abrir o arquivo com parâmetro "r" de read, apenas lê.
-    dados = fopen(nomeArquivo, "r");
+
     //Validação para caso o arquivo não possa ser aberto.
-    if (dados == NULL)
-    {
-        printf("\n# ERRO FATAL - O arquivo de dados não pode ser aberto.\n");
+    if (testarArquivo(arquivoUsuarios))
         return 0;
-    }
+
+    //Abrir o arquivo com parâmetro "r" de read, apenas lê.
+    dados = fopen(arquivoUsuarios, "r");
+
     //Passa pelas linhas do arquivo
     while (!feof(dados))
     {
@@ -778,7 +782,7 @@ void areaLogada()
     int op = 0;         //Recebe o valor da entrada convertido para int para usar no switch
 
     imprimirDecoracao();
-    
+
     printf("\n\t\t\tBEM-VINDO %s %s!\n", u.papel, u.nome);
 
     //Menu de opções
@@ -864,16 +868,14 @@ void imprimirDados()
  */
 void excluirDados()
 {
-    dados = fopen(nomeArquivo, "r");              //Arquivo de entrada
+    //Validação para caso os arquivos não possa ser acessados.
+    if (testarArquivo(arquivoUsuarios) || testarArquivo("transferindo.txt"))
+        return;
+
+    dados = fopen(arquivoUsuarios, "r");          //Arquivo de entrada
     FILE *saida = fopen("transferindo.txt", "w"); //Arquivo de saída
     char texto[MAX];                              //Uma string grande para armazenar as linhas lidas
 
-    //Validação para caso o arquivo não possa ser aberto.
-    if (dados == NULL || saida == NULL)
-    {
-        printf("\n# FALHA NOS DADOS - O arquivo de dados não pode ser aberto.");
-        return;
-    }
     //Loop pelas linhas do arquivo
     while (fgets(texto, MAX, dados) != NULL)
     {
@@ -888,9 +890,9 @@ void excluirDados()
     fclose(saida);
 
     //Excluir arquivo original, contendo a linha dos dados do usuário
-    remove(nomeArquivo);
+    remove(arquivoUsuarios);
     //Renomeia o arquivo onde foram passadas as linhas que não seriam excluidas para o nome do arquivo de dados de entrada
-    rename("transferindo.txt", nomeArquivo);
+    rename("transferindo.txt", arquivoUsuarios);
     printf("\n# SUCESSO - Seu cadastro foi deletado.\n");
 }
 
@@ -901,4 +903,21 @@ void imprimirDecoracao()
 {
     printf("\n_________________________________________________________________________________");
     printf("\n*********************************************************************************\n");
+}
+
+/**
+ *  Verifica se o arquivo passado como parâmetro pode ser criado/utilizado
+ *  @param *nomeArquivo: nome do arquivo que se deseja testar
+ *  @return int 1 caso o arquivo não possa ser acessado e 0 caso contrário
+ */
+short int testarArquivo(char *nomeArquivo)
+{
+    FILE *arquivo = fopen(nomeArquivo, "a");
+    if (arquivo == NULL)
+    {
+        printf("\n# ERRO - O arquivo '%s' não pode ser acessado, verifique.\n", nomeArquivo);
+        return 1;
+    }
+    fclose(arquivo);
+    return 0;
 }

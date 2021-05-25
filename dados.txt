@@ -8,4 +8,3 @@
 9 | login2 | 2iOoFcpFyt4z60k7 | $6$rounds=20000$2iOoFcpFyt4z60k7$rWhJ/oAsu4WN0Ixi4QrXisqhvTEulZMb0tEvKOVHhyYJxPb5wqvzoD/ozZ6AHSjb7l20lXvy28Hb5BwuUXv5F. | A | D | R@F.C | 2
 10 | loins | vhkcs.BUvk2i5Fyi | $6$rounds=20000$vhkcs.BUvk2i5Fyi$2Lp654bhOvLQqbFJDzs9jCMmU6F8owz74aBFv3OzAQD.4bxetI.oDoyBveFmbpUOYaPQAgwJB.yp4h2.sz.gG. | TESTE | TES | T@T.C | PROFESSOR
 11 | treis | A0QgoDz9fleta4ii | $6$rounds=20000$A0QgoDz9fleta4ii$4Q6wMisSZMJh/a199gnEbm/TRaqqyv5299wBU0diE8JU/rTQW1nxUjn48BHf5V3b2kx3zlrT8I.oDa1VutRkw1 | ASJDA | ADLS | G@J.C | 3
-12 | umlogin | Nw4zyxpuo00wo54e | $6$rounds=20000$Nw4zyxpuo00wo54e$kyJFLk9Qzf4tDxRYqRtlIT9snynx5LpnG.Ar0bMYp.CSvE89hGk.AIs5F99/tdiKcs9yH87IxHv4NpAWOCo/i. | LEOKS | LASLDK | TRE@AS.C | PROFESSOR
