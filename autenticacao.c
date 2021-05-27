@@ -31,6 +31,22 @@
 * Não pode conter caracteres que não sejam alfanuméricos, caracteres especiais ou espaço.
 **/
 
+/**
+    ❖ Coordenador:
+        ➢ Dados dos Estudantes: ver dados; alterar dados;
+        ➢ Disciplina: ver descrição da disciplina; alterar descrição da disciplina;
+            matricular estudante;
+        ➢ Notas: ver notas; alterar notas.
+    ❖ Professor:
+        ➢ Dados dos Estudantes: ver dados;
+        ➢ Disciplina: ver descrição da disciplina; alterar descrição da disciplina;
+        ➢ Notas: ver notas; alterar notas.
+    ❖ Estudante:
+        ➢ Dados dos Estudantes: ver dados; alterar dados;
+        ➢ Disciplina: ver descrição da disciplina; matricular estudante;
+        ➢ Notas: ver notas
+ */
+
 //Ponteiro para o arquivos
 FILE *dados = NULL, *notas = NULL;
 
@@ -59,6 +75,7 @@ void imprimirDados();
 void excluirDados();
 void imprimirDecoracao();
 short int testarArquivo(char *nomeArquivo);
+void editarDadosUsuario(int codigo);
 
 /**
  * Estrutura para organização dos dados do usuário
@@ -73,7 +90,7 @@ struct Usuario
     char salt[SALT_SIZE + 1];
     char senha[31];
     char *senhaCriptografada;
-    char papel[13];
+    short int papel;
     char linhaUsuario[MAX];
 };
 
@@ -136,7 +153,7 @@ int main()
             imprimirDecoracao();
             if (autenticar())
             {
-                areaLogada();
+                areaLogada(u.papel);
                 limparEstrutura();
             }
             break;
@@ -193,23 +210,17 @@ int pegarProximoId()
  */
 void cadastrarUsuario()
 {
-    //Variável para fazer a entrada de valores digitados e realizar a validação antes de atribuir à variável correta
-    char temp[MAX];
+    //Validação para caso o arquivo não possa ser aberto.
+    if (testarArquivo(arquivoUsuarios))
+        return;
 
-    //Limpando a variável para garantir que não entre lixo de memória
-    memset(&temp[0], 0, sizeof(temp));
-
-    //Declara variável que vai concatenar todos os valores para inserir no arquivo de uma só vez
-    char linha[MAX];
-
-    //Variavel que receberá o valor de código (inteiro), em formato string para fazer a concatenação e inserir no arquivo
-    char codigoString[16];
-
-    //Define o ID do usuário que está se cadastrando
-    u.codigo = pegarProximoId();
-
-    //Converte o valor inteiro para String, permitindo usá-la posteriormente na função strcat
-    sprintf(codigoString, "%d", u.codigo);
+    char temp[MAX];                        //Variável para fazer a entrada de valores digitados e realizar a validação antes de atribuir à variável correta
+    memset(&temp[0], 0, sizeof(temp));     //Limpando a variável para garantir que não entre lixo de memória
+    char linha[MAX];                       //Declara variável que vai concatenar todos os valores para inserir no arquivo de uma só vez
+    char codigoString[16];                 //Variável que receberá o valor de código (inteiro), em formato string para fazer a concatenação e inserir no arquivo
+    char papelString[2];                   //Variável que vai receber o número do papel e transformar em string para concatenar na linha e inserir no arquivo
+    u.codigo = pegarProximoId();           //Define o ID do usuário que está se cadastrando
+    sprintf(codigoString, "%d", u.codigo); //Converte o valor inteiro para String, permitindo usá-la posteriormente na função strcat
 
     /*Recolhendo informações do cadastro*/
     printf("\n> Forneça as informações necessárias para efetuar o cadastro:\n");
@@ -288,30 +299,19 @@ void cadastrarUsuario()
         printf("\n[2] Professor");
         printf("\n[3] Estudante\n> ");
         setbuf(stdin, NULL);
-        scanf("%[^\n]", temp);
+        scanf("%d", &u.papel);
 
-        if (strcmp(temp, "1") && strcmp(temp, "2") && strcmp(temp, "3"))
+        if (u.papel > 0 && u.papel < 4)
         {
-            printf("\n# FALHA - Escolha um número dentre as opções!\n");
+            break;
         }
         else
         {
-            if (!strcmp(temp, "1"))
-            {
-                strcpy(u.papel, "COORDENADOR");
-            }
-            else if (!strcmp(temp, "2"))
-            {
-                strcpy(u.papel, "PROFESSOR");
-            }
-            else
-            {
-                strcpy(u.papel, "ESTUDANTE");
-            }
-            memset(&temp[0], 0, sizeof(temp));
-            break;
+            printf("\n# FALHA - Escolha um número dentre as opções!\n");
         }
     } while (1);
+    //Converte o valor inteiro para String, permitindo usá-lo posteriormente na função strcat
+    sprintf(papelString, "%d", u.papel);
 
     /*Finalizada a coleta dos dados, agora, a gravação no arquivo será feita*/
     //Validação para caso o arquivo não possa ser aberto.
@@ -345,7 +345,7 @@ void cadastrarUsuario()
     strcat(linha, SEPARADOR);
     strcat(linha, u.email);
     strcat(linha, SEPARADOR);
-    strcat(linha, u.papel);
+    strcat(linha, papelString);
     strcat(linha, "\n");
 
     //Insere a string com todos os dados no arquivo
@@ -373,7 +373,7 @@ short int autenticar()
 {
     //Variaveis que guardam os dados lidos nas linhas do arquivo
     char identificadorArquivo[16], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[51], sobrenomeArquivo[51], emailArquivo[51];
-    // int idArquivo = 0, papelArquivo = 0;
+    int papelArquivo = 0;
 
     /*Coleta do login e senha*/
     printf("\n> Informe seus dados:\n\n> LOGIN: ");
@@ -394,8 +394,9 @@ short int autenticar()
     //Loop que passa por todas as linhas do arquivo
     while (!feof(dados))
     {
+
         //Lê as linhas até o final do arquivo
-        fscanf(dados, "%d | %s | %s | %s | %s | %s | %s | %s", &u.codigo, identificadorArquivo, saltArquivo, criptografiaArquivo, usuarioArquivo, sobrenomeArquivo, emailArquivo, u.papel);
+        fscanf(dados, "%d | %s | %s | %s | %s | %s | %s | %d", &u.codigo, identificadorArquivo, saltArquivo, criptografiaArquivo, usuarioArquivo, sobrenomeArquivo, emailArquivo, &u.papel);
         //Copia o salt lido do arquivo nessa linha para a variável u.salt de onde o criptografarSenha() irá usar
         strcpy(u.salt, saltArquivo);
         //Criptografa a senha que o usuário digitou com o salt que foi lido na linha
@@ -413,7 +414,7 @@ short int autenticar()
             strcpy(u.senhaCriptografada, criptografiaArquivo);
 
             //Salvar o formato da linha desse usuário autenticado para encontrar posteriormente
-            sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %s\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
+            sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
             //Fecha o arquivo
             fclose(dados);
             //Retorna 1, true
@@ -767,8 +768,7 @@ void limparEstrutura()
     memset(&u.senha[0], 0, sizeof(u.senha));
     memset(&u.senhaCriptografada[0], 0, sizeof(u.senhaCriptografada));
     memset(&u.linhaUsuario[0], 0, sizeof(u.linhaUsuario));
-    memset(&u.papel[0], 0, sizeof(u.papel));
-    strcpy(u.papel, "DESCONHECIDO");
+    u.papel = '0';
     u.codigo = '0';
     // printf("\n# A ESTRUTURA FOI LIMPA.\n");
 }
@@ -776,14 +776,14 @@ void limparEstrutura()
 /**
  * Opções para o usuário autenticado
  */
-void areaLogada()
+void areaLogada(int papel)
 {
     char entrada = '0'; //Recebe a entrada que o usuário digitar
     int op = 0;         //Recebe o valor da entrada convertido para int para usar no switch
 
     imprimirDecoracao();
 
-    printf("\n\t\t\tBEM-VINDO %s %s!\n", u.papel, u.nome);
+    printf("\n\t\t\tBEM-VINDO %d %s!\n", u.papel, u.nome);
 
     //Menu de opções
     do
@@ -802,11 +802,27 @@ void areaLogada()
         imprimirDecoracao();
         printf("\n\t\t\tLOGADO COMO %s.\n", u.nome);
         printf("\n> Informe um número para escolher uma opção e pressione ENTER:");
-        printf("\n[1] Ver a política de criação de identificadores e senhas");
-        printf("\n[2] Ver meus dados");
+        printf("\n[1] Ver meus dados");
+        printf("\n[2] Editar meus dados");
         printf("\n[3] Excluir meu cadastro");
         printf("\n[4] Logout");
+        printf("\n[5] Ver descrição da disciplina");
+        printf("\n[6] Ver notas");
+        //Coordenador e Professor tem acesso
+        if (u.papel == 1 || u.papel == 2)
+        {
+            printf("\n[7] Ver dados estudantes");
+            printf("\n[8] Alterar descrição da disciplina");
+            printf("\n[9] Alterar notas");
+        }
+        //Coordenador tem acesso
+        if (u.papel == 1)
+        {
+            printf("\n[10] Alterar dados estudantes");
+            printf("\n[11] Matricular estudante");
+        }
         printf("\n[0] Encerrar programa");
+
         imprimirDecoracao();
         printf("\n> Informe o número: ");
         scanf("%[0-9]", &entrada);
@@ -814,24 +830,25 @@ void areaLogada()
         //Converte o char para int para que possa ser verificado no switch
         op = entrada - '0';
 
+        //### - Restringir acessos conforme papel
         switch (op)
         {
         case 0:
             limparEstrutura();
+            system("cls || clear");
             printf("\n# SISTEMA FINALIZADO.\n");
             exit(0);
         case 1:
             imprimirDecoracao();
-            printf("\n\t\t>> POLÍTICA DE IDENTIFICADORES E SENHAS <<\n\n");
-            imprimirDecoracao();
-            mostrarPolitica();
-            break;
-        case 2:
-            imprimirDecoracao();
             printf("\n\t\t\t>> MEUS DADOS <<\n\n");
             imprimirDados();
             imprimirDecoracao();
-
+            break;
+        case 2:
+            imprimirDecoracao();
+            printf("\n\t\t\t>> EDITAR MEUS DADOS <<\n\n");
+            imprimirDecoracao();
+            editarDadosUsuario(u.codigo);
             break;
         case 3:
             imprimirDecoracao();
@@ -920,4 +937,104 @@ short int testarArquivo(char *nomeArquivo)
     }
     fclose(arquivo);
     return 0;
+}
+
+void editarDadosUsuario(int codigo)
+{
+    //Validação para caso os arquivos não possa ser acessados.
+    if (testarArquivo(arquivoUsuarios) || testarArquivo("transferindo.txt"))
+        return;
+
+    char entrada = '0'; //Recebe a entrada que o usuário digitar
+    int op = 0;         //Recebe o valor da entrada convertido para int para usar no switch
+
+    //Menu de opções
+    do
+    {
+        printf("\nPressione ENTER para continuar...\n");
+        //Limpa o buffer do teclado para evitar que lixo de memória (geralmente ENTER) seja lido ao invés da entrada do usuário
+        setbuf(stdin, NULL);
+        //Apenas uma pausa para que as informações fiquem na tela
+        getchar();
+        //Limpa o ENTER digitado no getchar()
+        setbuf(stdin, NULL);
+        //Limpar a variável para evitar lixo de memória nas repetições
+        entrada = '\0';
+
+        system("cls || clear");
+        imprimirDecoracao();
+        printf("\n\t\t\tEDITAR MEUS DADOS\n");
+        printf("\n> Informe um número para escolher o dado que quer editar e pressione ENTER:");
+        printf("\n[1] Nome");
+        printf("\n[2] Sobrenome");
+        printf("\n[3] E-mail");
+        printf("\n[4] Identificador");
+        printf("\n[5] Senha");
+        printf("\n[6] Papel");
+        printf("\n[0] Encerrar programa");
+        imprimirDecoracao();
+        printf("\n> Informe o número: ");
+        scanf("%[0-9]", &entrada);
+
+        //Converte o char para int para que possa ser verificado no switch
+        op = entrada - '0';
+
+        //### - Implementar edição dos dados
+        switch (op)
+        {
+        case 0:
+            limparEstrutura();
+            system("cls || clear");
+            printf("\n# SISTEMA FINALIZADO.\n");
+            exit(0);
+        case 1:
+            
+            break;
+        case 2:
+            
+            break;
+        case 3:
+            
+            break;
+        case 4:
+        
+            break;
+        default:
+            printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+            break;
+        }
+    } while (1);
+
+    // ### - Montar uma string com os dados atualizados para colocar no else
+
+    //Validação novamente antes de acessar os arquivos.
+    if (testarArquivo(arquivoUsuarios) || testarArquivo("transferindo.txt"))
+        return;
+
+    dados = fopen(arquivoUsuarios, "r");          //Arquivo de entrada
+    FILE *saida = fopen("transferindo.txt", "w"); //Arquivo de saída
+    char texto[MAX];                              //Uma string grande para armazenar as linhas lidas
+
+    //Loop pelas linhas do arquivo
+    while (fgets(texto, MAX, dados) != NULL)
+    {
+        //Se a linha sendo lida no arquivo for diferente da linha do usuário atual, ela será copiada para o arquivo de saída
+        if (strcmp(u.linhaUsuario, texto))
+        {
+            fputs(texto, saida);
+        }
+        else
+        {
+            //### - inserir string com dados atualizados no arquivo aqui
+        }
+    }
+    //Fechar arquivos
+    fclose(dados);
+    fclose(saida);
+
+    //Excluir arquivo original, contendo a linha dos dados do usuário
+    remove(arquivoUsuarios);
+    //Renomeia o arquivo onde foram passadas as linhas que não seriam excluidas para o nome do arquivo de dados de entrada
+    rename("transferindo.txt", arquivoUsuarios);
+    printf("\n# SUCESSO - Seu cadastro foi deletado.\n");
 }
