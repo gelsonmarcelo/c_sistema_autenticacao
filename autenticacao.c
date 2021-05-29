@@ -33,7 +33,7 @@
 
 /**
     ❖ Coordenador:
-        ➢ Dados dos Estudantes: ver dados;
+        ➢ Dados dos Estudantes: ver dados; alterar dados;
         ➢ Disciplina: ver descrição da disciplina; alterar descrição da disciplina;
             matricular estudante;
         ➢ Notas: ver notas; alterar notas.
@@ -42,7 +42,7 @@
         ➢ Disciplina: ver descrição da disciplina; alterar descrição da disciplina;
         ➢ Notas: ver notas; alterar notas.
     ❖ Estudante:
-        ➢ Dados dos Estudantes: ver dados; alterar dados;
+        ➢ Dados dos Estudantes: ;
         ➢ Disciplina: ver descrição da disciplina; matricular estudante;
         ➢ Notas: ver notas
  */
@@ -60,7 +60,7 @@ struct Usuario u;
 
 int pegarProximoId();
 void cadastrarUsuario();
-short int autenticar();
+short int autenticar(short int ehLogin);
 void mostrarPolitica();
 char *alternarCapitalLetras(char *string, int flag);
 short int validarStringPadrao(char *string);
@@ -150,13 +150,14 @@ int main()
         switch (op)
         {
         case 0:
+            limparEstrutura();
             printf("\n# SISTEMA FINALIZADO.\n");
             return 0;
         case 1:
             imprimirDecoracao();
             printf("\n\t\t\t>> AUTENTICAÇÃO <<\n\n");
             imprimirDecoracao();
-            if (autenticar())
+            if (autenticar(1))
             {
                 areaLogada(u.papel);
                 limparEstrutura();
@@ -281,6 +282,9 @@ void concatenarDadosUsuario()
 
     memset(&u.linhaAtualizadaUsuario[0], 0, sizeof(u.linhaAtualizadaUsuario));
     strcpy(u.linhaAtualizadaUsuario, linha);
+    printf("\n§ Linha: %s", linha);
+    getchar();
+    getchar();
 }
 
 /**
@@ -374,6 +378,7 @@ void coletarDados(short int nome, short int sobrenome, short int email, short in
         } while (!validarSenha(temp));
         strcpy(u.senha, temp);
         memset(&temp[0], 0, sizeof(temp));
+        printf("\n# SUCESSO - Senha aprovada.\n");
 
         //Gerar o valor pseudoaleatório do salt desse usuário
         gerarSalt();
@@ -410,21 +415,20 @@ void coletarDados(short int nome, short int sobrenome, short int email, short in
  * Relizar a autenticação do usuário
  * @return 1 em caso de sucesso e; 0 em outros casos
  */
-// ### - Trabalhar a autenticação para não ser somente de login mas também de validação do usuário para operações.
-short int autenticar()
+short int autenticar(short int ehLogin)
 {
     //Variaveis que guardam os dados lidos nas linhas do arquivo
     char identificadorArquivo[16], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[51], sobrenomeArquivo[51], emailArquivo[51];
-    int papelArquivo = 0;
+    int codigoArquivo = 0, papelArquivo = 0;
 
     /*Coleta do login e senha*/
-    printf("\n> Informe seus dados:\n\n> LOGIN: ");
+    printf("\n> Informe suas credenciais:\n# LOGIN: ");
     //Limpa o buffer de entrada par evitar lixo
     setbuf(stdin, NULL);
     //Realiza a leitura até o usuário pressionar ENTER
     scanf("%[^\n]", &u.identificador);
     //Lê a senha com ECHO desativado e copia a leitura para a variável u.senha do usuário
-    strcpy(u.senha, getpass("\n> SENHA: "));
+    strcpy(u.senha, getpass("# SENHA: "));
 
     //Validação para caso o arquivo não possa ser aberto.
     if (testarArquivo(arquivoUsuarios))
@@ -438,7 +442,7 @@ short int autenticar()
     {
 
         //Lê as linhas até o final do arquivo
-        fscanf(dados, "%d | %s | %s | %s | %s | %s | %s | %d", &u.codigo, identificadorArquivo, saltArquivo, criptografiaArquivo, usuarioArquivo, sobrenomeArquivo, emailArquivo, &u.papel);
+        fscanf(dados, "%d | %s | %s | %s | %s | %s | %s | %d", &codigoArquivo, identificadorArquivo, saltArquivo, criptografiaArquivo, usuarioArquivo, sobrenomeArquivo, emailArquivo, &papelArquivo);
         //Copia o salt lido do arquivo nessa linha para a variável u.salt de onde o criptografarSenha() irá usar
         strcpy(u.salt, saltArquivo);
         //Criptografa a senha que o usuário digitou com o salt que foi lido na linha
@@ -446,26 +450,45 @@ short int autenticar()
         //Se o identificador lido no arquivo e a senha digitada, criptografada com o salt da linha do arquivo forem iguais, autentica o usuário
         if (!strcmp(identificadorArquivo, u.identificador) && !strcmp(criptografiaArquivo, u.senhaCriptografada))
         {
-            printf("\n\n# SUCESSO - Autenticação realizada!\n\n");
-            //Copiando dados para a estrutura
-            strcpy(u.nome, usuarioArquivo);
-            strcpy(u.sobrenome, sobrenomeArquivo);
-            strcpy(u.email, emailArquivo);
-            strcpy(u.identificador, identificadorArquivo);
-            strcpy(u.salt, saltArquivo);
-            strcpy(u.senhaCriptografada, criptografiaArquivo);
+            //Se for login basta acertar um identificador e senha qualquer salvo no arquivo
+            if (ehLogin)
+            {
+                //Copiando dados para a estrutura
+                u.codigo = codigoArquivo;
+                strcpy(u.nome, usuarioArquivo);
+                strcpy(u.sobrenome, sobrenomeArquivo);
+                strcpy(u.email, emailArquivo);
+                strcpy(u.identificador, identificadorArquivo);
+                strcpy(u.salt, saltArquivo);
+                strcpy(u.senhaCriptografada, criptografiaArquivo);
+                u.papel = papelArquivo;
+                atualizarLinhaUsuario();
+                printf("\n\n# SUCESSO - Autenticação realizada!\n\n");
 
-            atualizarLinhaUsuario();
-
-            //Fecha o arquivo
-            fclose(dados);
-            //Retorna 1, true
-            return 1;
+                fclose(dados); //Fecha o arquivo
+                return 1;      //Retorna 1, true
+            }
+            //Se não for login, a autenticação só poderá liberar o acesso caso o usuário autenticando seja o usuário que está logado
+            else if (u.codigo == codigoArquivo)
+            {
+                printf("\n\n# SUCESSO - Acesso autorizado.\n\n");
+                fclose(dados); //Fecha o arquivo
+                return 1;      //Retorna 1, true
+            }
+            else
+            {
+                printf("\n\n# ACESSO NÃO AUTORIZADO - Esse usuário não pode realizar essa operação!\n\n");
+                return 0;
+            }
         }
     }
     //Se sair do loop é porque não autenticou
     fclose(dados);
-    limparEstrutura();
+    /*Apenas se for autenticação para login, deve limpar os dados caso falhe a autenticação, 
+    se for autenticação quando o usuário já está logado, não pode limpar os dados caso erre a senha.*/
+    if (ehLogin)
+        limparEstrutura();
+
     printf("\n# FALHA - Usuário e/ou senha incorretos!\n");
     //Retorna 0, false
     return 0;
@@ -1015,9 +1038,9 @@ void editarDadosUsuario(int codigo)
         printf("\n[4] Identificador");
         printf("\n[5] Senha");
         printf("\n[6] Papel");
-        printf("\n[7] SALVAR DADOS ALTERADOS E SAIR");
-        printf("\n[8] SAIR SEM SALVAR");
-        printf("\n[0] Encerrar programa");
+        printf("\n_______________________________");
+        printf("\n[7] SAIR E GUARDAR ALTERAÇÕES");
+        printf("\n[0] ENCERRAR PROGRAMA");
         imprimirDecoracao();
         printf("\n> Informe o número: ");
         scanf("%[0-9]", &entrada);
@@ -1046,8 +1069,8 @@ void editarDadosUsuario(int codigo)
             coletarDados(0, 0, 0, 1, 0, 0);
             break;
         case 5:
-        // ### - Solicitar autenticação para proceder com essa operação.
-            coletarDados(0, 0, 0, 0, 1, 0);
+            if (autenticar(0))
+                coletarDados(0, 0, 0, 0, 1, 0);
             break;
         case 6:
             coletarDados(0, 0, 0, 0, 0, 1);
@@ -1068,7 +1091,7 @@ void editarDadosUsuario(int codigo)
 
 /**
  * Joga os dados das variáveis do usuário para a variável linhaUsuario, no formato que estarão no arquivo
- */ 
+ */
 void atualizarLinhaUsuario()
 {
     //Salvar o formato da linha do usuário autenticado
