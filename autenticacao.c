@@ -48,17 +48,22 @@
  */
 
 //Ponteiro para os arquivos
-FILE *dados = NULL, *notas = NULL;
+FILE *dados = NULL, *notas = NULL, *disciplina = NULL, *curso = NULL;
 
 char arquivoUsuarios[] = "dados.txt";
 char arquivoNotas[] = "notas.txt";
+char arquivoDisciplina[] = "disciplina.txt";
+char arquivoCurso[] = "curso.txt";
 
-//Declaração da estrutura
+//Declaração da estrutura do usuário
 struct Usuario u;
+
+//Declaração da estrutura da disciplina
+struct Disciplina d;
 
 /*Declaração das funções*/
 
-int pegarProximoId();
+int pegarProximoId(char *arquivo);
 void cadastrarUsuario();
 short int autenticar(short int ehLogin);
 void mostrarPolitica();
@@ -69,7 +74,7 @@ short int validarIdentificador(char *identificador);
 short int validarSenha(char *senha);
 void gerarSalt();
 void criptografarSenha();
-void limparEstrutura();
+void limparEstruturaUsuario();
 void areaLogada();
 void imprimirDados();
 void excluirDados();
@@ -80,6 +85,8 @@ void coletarDados(short int nome, short int sobrenome, short int email, short in
 void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtualizada);
 void concatenarDadosUsuario();
 void atualizarLinhaUsuario();
+short int inserirDadosPadrao(char *arquivo);
+short int atribuirProfessorDisciplina(int idDisciplina, int idProfessor);
 
 /**
  * Estrutura para organização dos dados do usuário
@@ -100,6 +107,18 @@ struct Usuario
 };
 
 /**
+ * Estrutura para organização dos dados da disciplina
+ */
+struct Disciplina
+{
+    int codigo;
+    char nome[51];
+    int idCurso;
+    int idProfessor;
+    char descricao[MAX * 4];
+};
+
+/**
  * Função principal
  */
 int main()
@@ -107,16 +126,25 @@ int main()
     setlocale(LC_ALL, "Portuguese");
 
     //Verifica arquivos necessários para o programa iniciar
-    if (testarArquivo(arquivoUsuarios) || testarArquivo(arquivoNotas))
+    if (testarArquivo(arquivoUsuarios) || testarArquivo(arquivoNotas) || testarArquivo(arquivoDisciplina) || testarArquivo(arquivoCurso))
     {
         printf("\n# ERRO FATAL - um arquivo de dados essencial não pode ser aberto, o programa não pode ser iniciado.\n");
         return 0;
+    }
+
+    //Se o arquivo do Curso ou da Disciplina estiver vazio vai inserir os dados default para trabalhar
+    if (pegarProximoId(arquivoCurso) == 1 || pegarProximoId(arquivoDisciplina) == 1)
+    {
+        if (inserirDadosPadrao(arquivoCurso) || inserirDadosPadrao(arquivoDisciplina))
+            return 0;
     }
 
     imprimirDecoracao();
     printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO! <<\n");
     char entrada = '0';
     int op = 0;
+
+    int a = atribuirProfessorDisciplina(1, 1);
 
     //Menu de opções
     do
@@ -131,7 +159,7 @@ int main()
         //Limpar a variável para evitar lixo de memória nas repetições
         entrada = '\0';
 
-        system("cls || clear");
+        // system("cls || clear");
         imprimirDecoracao();
         printf("\n\t\t>> MENU DE OPÇÕES <<\n");
         printf("\n> Informe um número para escolher uma opção e pressione ENTER:");
@@ -150,7 +178,7 @@ int main()
         switch (op)
         {
         case 0:
-            limparEstrutura();
+            limparEstruturaUsuario();
             printf("\n# SISTEMA FINALIZADO.\n");
             return 0;
         case 1:
@@ -160,7 +188,7 @@ int main()
             if (autenticar(1))
             {
                 areaLogada(u.papel);
-                limparEstrutura();
+                limparEstruturaUsuario();
             }
             break;
         case 2:
@@ -185,20 +213,67 @@ int main()
 }
 
 /**
+ * Insere os dados padrão no arquivo de curso ou disciplina, o que for passado como parâmetro.
+ * @return 1 em caso de falha ou 0 em caso de sucesso
+ */
+short int inserirDadosPadrao(char *arquivo)
+{
+    char StringDados[110]; //Tamanho máximo dos dados que informarei
+
+    //Teste do arquivo
+    if (testarArquivo(arquivo))
+        return 1;
+
+    dados = fopen(arquivo, "w");
+
+    if (!strcmp(arquivo, arquivoCurso))
+    {
+        //id | Nome
+        strcpy(StringDados, "1 | Análise e Desenvolvimento de Sistemas\n");
+    }
+    else if (!strcmp(arquivo, arquivoDisciplina))
+    {
+        //id | Nome            | idCurso | idProfessor | Descrição
+        strcpy(StringDados, "1 | Segurança da Informação | 1 | 0 | Descrição padrão da disciplina de Segurança da Informação\n");
+    }
+    else
+    {
+        printf("\n# ERRO - O arquivo passado como parâmetro não pode ser utilizado para essa função: %s\n", arquivo);
+        fclose(dados);
+        return 1;
+    }
+    //Insere os dados padrão no arquivo
+    if (fputs(StringDados, dados) == EOF)
+    {
+        printf("\n# ERRO - Problema para inserir os dados no arquivo %s\n", arquivo);
+        perror("# - ");
+        fclose(dados);
+        return 1;
+    }
+    else
+    {
+        printf("\n# SUCESSO - Dados padrão inseridos no arquivo %s\n", arquivo);
+    }
+
+    fclose(dados);
+    return 0;
+}
+
+/**
  * Busca no arquivo o último ID cadastrado e retorna o próximo ID a ser usado
  * @return valor do próximo ID a ser usado e 0 em caso de falha
  */
-int pegarProximoId()
+int pegarProximoId(char *arquivo)
 {
     int id = 0;
     char linha[MAX];
 
     //Teste do arquivo
-    if (testarArquivo(arquivoUsuarios))
+    if (testarArquivo(arquivo))
         return 0;
 
     //Abrindo arquivo
-    dados = fopen(arquivoUsuarios, "r");
+    dados = fopen(arquivo, "r");
 
     while (!feof(dados))
     {
@@ -220,7 +295,7 @@ void cadastrarUsuario()
     if (testarArquivo(arquivoUsuarios))
         return;
 
-    u.codigo = pegarProximoId(); //Define o ID do usuário que está se cadastrando
+    u.codigo = pegarProximoId(arquivoUsuarios); //Define o ID do usuário que está se cadastrando
 
     /*Recolhendo informações do cadastro*/
     printf("\n> Forneça as informações necessárias para efetuar o cadastro:\n");
@@ -247,7 +322,7 @@ void cadastrarUsuario()
     }
 
     fclose(dados); //Fecha o arquivo
-    limparEstrutura();
+    limparEstruturaUsuario();
 }
 
 /**
@@ -282,9 +357,7 @@ void concatenarDadosUsuario()
 
     memset(&u.linhaAtualizadaUsuario[0], 0, sizeof(u.linhaAtualizadaUsuario));
     strcpy(u.linhaAtualizadaUsuario, linha);
-    printf("\n§ Linha: %s", linha);
-    getchar();
-    getchar();
+    // printf("\n§ Linha: %s", linha);
 }
 
 /**
@@ -488,7 +561,7 @@ short int autenticar(short int ehLogin)
     /*Apenas se for autenticação para login, deve limpar os dados caso falhe a autenticação, 
     se for autenticação quando o usuário já está logado, não pode limpar os dados caso erre a senha.*/
     if (ehLogin)
-        limparEstrutura();
+        limparEstruturaUsuario();
 
     printf("\n# FALHA - Usuário e/ou senha incorretos!\n");
     //Retorna 0, false
@@ -822,9 +895,9 @@ void criptografarSenha()
 }
 
 /**
- * Zera os dados da estrutura para reutilização
+ * Zera os dados da estrutura do usuário para reutilização
  */
-void limparEstrutura()
+void limparEstruturaUsuario()
 {
     memset(&u.nome[0], 0, sizeof(u.nome));
     memset(&u.sobrenome[0], 0, sizeof(u.sobrenome));
@@ -836,7 +909,19 @@ void limparEstrutura()
     memset(&u.linhaUsuario[0], 0, sizeof(u.linhaUsuario));
     u.papel = '0';
     u.codigo = '0';
-    // printf("\n# A ESTRUTURA FOI LIMPA.\n");
+    // printf("\n# A ESTRUTURA DO USUÁRIO FOI LIMPA.\n");
+}
+
+/**
+ * Zera os dados da estrutura da disciplina para reutilização
+ */
+void limparEstruturaDisciplina()
+{
+    memset(&d.nome[0], 0, sizeof(d.nome));
+    memset(&d.descricao[0], 0, sizeof(d.descricao));
+    d.idCurso = '0';
+    d.idProfessor = '0';
+    d.codigo = '0';
 }
 
 /**
@@ -918,7 +1003,7 @@ void areaLogada(int papel)
         case 0:
             if (!strcmp(entrada, "0"))
             {
-                limparEstrutura();
+                limparEstruturaUsuario();
                 system("cls || clear");
                 printf("\n# SISTEMA FINALIZADO.\n");
                 exit(0);
@@ -936,7 +1021,7 @@ void areaLogada(int papel)
             imprimirDecoracao();
             printf("\n\t\t\t>> EXCLUIR CONTA <<\n\n");
             excluirDados();
-            limparEstrutura();
+            limparEstruturaUsuario();
             return;
         case 3:
             imprimirDecoracao();
@@ -980,7 +1065,8 @@ void areaLogada(int papel)
                     imprimirDecoracao();
                     printf("\n\t\t\t>> VER DADOS ESTUDANTES <<\n\n");
                     imprimirDecoracao();
-                    //### Função ver descrição disciplina
+                    //### listarEstudantes();
+                    //### verDadosEstudante(idEstudante);
                     break;
                 case 8:
                     imprimirDecoracao();
@@ -1155,7 +1241,7 @@ void editarDadosUsuario(int codigo)
         switch (op)
         {
         case 0:
-            limparEstrutura();
+            limparEstruturaUsuario();
             system("cls || clear");
             printf("\n# SISTEMA FINALIZADO.\n");
             exit(0);
@@ -1233,4 +1319,38 @@ void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtuali
     //Renomeia o arquivo onde foram passadas as linhas, inclusive a linha atualizada, para o nome do arquivo de dados de entrada
     rename("transferindo.txt", arquivo);
     printf("\n# SUCESSO - Os dados foram atualizados.\n");
+}
+
+short int atribuirProfessorDisciplina(int idDisciplina, int idProfessor)
+{
+    char temp[MAX * 5], linhaAntiga[MAX * 5], linhaAtualizada[MAX * 5];
+    // char nomeArquivo[51], descricaoArquivo[MAX * 4];
+
+    //Validação para caso o arquivo não possa ser aberto.
+    if (testarArquivo(arquivoDisciplina))
+        return 0;
+
+    //Abrir o arquivo com parâmetro "r" de read, apenas lê.
+    dados = fopen(arquivoDisciplina, "r");
+    while (!feof(dados))
+    {
+        //Lê as linhas até o final do arquivo
+        fscanf(dados, "%d | %[^|] | %d | %d | %[^\n]", &d.codigo, d.nome, &d.idCurso, &d.idProfessor, d.descricao);
+
+        if (d.codigo == idDisciplina)
+        {
+            sprintf(linhaAntiga, "%d | %s| %d | %d | %s\n", d.codigo, d.nome, d.idCurso, d.idProfessor, d.descricao);
+            printf("\n§ Linha Antiga: '%s'", linhaAntiga);
+            sprintf(linhaAtualizada, "%d | %s| %d | %d | %s\n", d.codigo, d.nome, d.idCurso, idProfessor, d.descricao);
+            printf("\n§ Linha Atualizada: '%s'", linhaAtualizada);
+
+            fclose(dados);
+            atualizarLinhaArquivo(arquivoDisciplina, linhaAntiga, linhaAtualizada);
+            return 1;
+        }
+    }
+    // printf("\n§ DISCIPLINA:\ncodigo: %d\nnome: '%s'\nid Curso: %d\nid Professor: %d\nDescrição: %s", d.codigo, d.nome, d.idCurso, d.idProfessor, d.descricao);
+
+    fclose(dados);
+    return 0;
 }
