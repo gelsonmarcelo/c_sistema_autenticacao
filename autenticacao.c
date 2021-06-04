@@ -47,7 +47,7 @@
         ➢ Notas: ver notas
  */
 
-//Ponteiro para o arquivos
+//Ponteiro para os arquivos
 FILE *dados = NULL, *notas = NULL;
 
 char arquivoUsuarios[] = "dados.txt";
@@ -397,6 +397,7 @@ void coletarDados(short int nome, short int sobrenome, short int email, short in
             printf("\n[2] Professor");
             printf("\n[3] Estudante\n> ");
             setbuf(stdin, NULL);
+            u.papel = 0;
             scanf("%d", &u.papel);
 
             if (u.papel > 0 && u.papel < 4)
@@ -843,12 +844,25 @@ void limparEstrutura()
  */
 void areaLogada(int papel)
 {
-    char entrada = '0'; //Recebe a entrada que o usuário digitar
-    int op = 0;         //Recebe o valor da entrada convertido para int para usar no switch
+    char entrada[] = "00"; //Recebe a entrada que o usuário digitar
+    int op = 0;            //Recebe o valor da entrada convertido para int para usar no switch
 
     imprimirDecoracao();
 
-    printf("\n\t\t\tBEM-VINDO %d %s!\n", u.papel, u.nome);
+    char papelString[13];
+    if (papel == 1)
+    {
+        strcpy(papelString, "Coordenador");
+    }
+    else if (papel == 2)
+    {
+        strcpy(papelString, "Professor");
+    }
+    else
+    {
+        strcpy(papelString, "Estudante");
+    }
+    printf("\n\t\t\tBEM-VINDO %s %s!\n", papelString, u.nome);
 
     //Menu de opções
     do
@@ -861,16 +875,20 @@ void areaLogada(int papel)
         //Limpa o ENTER digitado no getchar()
         setbuf(stdin, NULL);
         //Limpar a variável para evitar lixo de memória nas repetições
-        entrada = '\0';
+        memset(&entrada[0], 0, sizeof(entrada));
 
         system("cls || clear");
         imprimirDecoracao();
         printf("\n\t\t\tLOGADO COMO %s.\n", u.nome);
+        //Qualquer tem acesso
         printf("\n> Informe um número para escolher uma opção e pressione ENTER:");
-        printf("\n[1] Ver meus dados");
-        printf("\n[2] Editar meus dados");
-        printf("\n[3] Excluir meu cadastro");
-        printf("\n[4] Logout");
+        printf("\n___________________________________");
+        printf("\n[0] ENCERRAR PROGRAMA");
+        printf("\n[1] LOGOUT");
+        printf("\n[2] EXCLUIR MEU CADASTRO");
+        printf("\n___________________________________");
+        printf("\n[3] Ver meus dados");
+        printf("\n[4] Editar meus dados");
         printf("\n[5] Ver descrição da disciplina");
         printf("\n[6] Ver notas");
         //Coordenador e Professor tem acesso
@@ -886,46 +904,131 @@ void areaLogada(int papel)
             printf("\n[10] Alterar dados estudantes");
             printf("\n[11] Matricular estudante");
         }
-        printf("\n[0] Encerrar programa");
 
         imprimirDecoracao();
         printf("\n> Informe o número: ");
-        scanf("%[0-9]", &entrada);
+        scanf("%[0-9]", entrada);
 
         //Converte o char para int para que possa ser verificado no switch
-        op = entrada - '0';
+        op = atoi(entrada);
 
         //### - Restringir acessos conforme papel
         switch (op)
         {
         case 0:
-            limparEstrutura();
-            system("cls || clear");
-            printf("\n# SISTEMA FINALIZADO.\n");
-            exit(0);
+            if (!strcmp(entrada, "0"))
+            {
+                limparEstrutura();
+                system("cls || clear");
+                printf("\n# SISTEMA FINALIZADO.\n");
+                exit(0);
+            }
+            else //O usuário digitou um caractere não inteiro
+            {
+                printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+                getchar();
+            }
+            break;
         case 1:
-            imprimirDecoracao();
-            printf("\n\t\t\t>> MEUS DADOS <<\n\n");
-            imprimirDados();
-            imprimirDecoracao();
-            break;
+            printf("\n# LOGOUT - Você saiu.\n");
+            return;
         case 2:
-            imprimirDecoracao();
-            printf("\n\t\t\t>> EDITAR MEUS DADOS <<\n\n");
-            imprimirDecoracao();
-            editarDadosUsuario(u.codigo);
-            break;
-        case 3:
             imprimirDecoracao();
             printf("\n\t\t\t>> EXCLUIR CONTA <<\n\n");
             excluirDados();
             limparEstrutura();
             return;
+        case 3:
+            imprimirDecoracao();
+            printf("\n\t\t\t>> MEUS DADOS <<\n\n");
+            imprimirDados();
+            imprimirDecoracao();
+            break;
         case 4:
-            printf("\n# LOGOUT - Você saiu.\n");
-            return;
+            imprimirDecoracao();
+            printf("\n\t\t\t>> EDITAR MEUS DADOS <<\n\n");
+            imprimirDecoracao();
+            editarDadosUsuario(u.codigo);
+            break;
+        case 5:
+            imprimirDecoracao();
+            printf("\n\t\t\t>> DESCRIÇÃO DA DISCIPLINA <<\n\n");
+            imprimirDecoracao();
+            //### Função ver descrição disciplina
+            break;
+        case 6:
+            imprimirDecoracao();
+            printf("\n\t\t\t>> NOTAS <<\n\n");
+            imprimirDecoracao();
+            if (u.papel == 3)
+            {
+                //### Função ver notas apenas do estudante
+                //verNota(idEstudante);
+            }
+            else
+            {
+                //### Escolher qual estudante quer ver as notas
+                //listarEstudantes();
+            }
+            break;
         default:
-            printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+            if (u.papel == 1 || u.papel == 2)
+            {
+                switch (op)
+                {
+                case 7:
+                    imprimirDecoracao();
+                    printf("\n\t\t\t>> VER DADOS ESTUDANTES <<\n\n");
+                    imprimirDecoracao();
+                    //### Função ver descrição disciplina
+                    break;
+                case 8:
+                    imprimirDecoracao();
+                    printf("\n\t\t\t>> ALTERAR DESCRIÇÃO DA DISCIPLINA <<\n\n");
+                    imprimirDecoracao();
+                    //### verDescricaoDisciplina();
+                    break;
+                case 9:
+                    imprimirDecoracao();
+                    printf("\n\t\t\t>> ALTERAR NOTAS DOS ESTUDANTES <<\n\n");
+                    imprimirDecoracao();
+                    //### listarEstudantes();
+                    //### alterarNotaEstudante(idEstudante);
+                    break;
+                default:
+                    if (u.papel == 1)
+                    {
+                        switch (op)
+                        {
+                        case 10:
+                            imprimirDecoracao();
+                            printf("\n\t\t\t>> ALTERAR DADOS ESTUDANTES <<\n\n");
+                            imprimirDecoracao();
+                            //### listarEstudantes();
+                            //### alterarDadosEstudante(idEstudante);
+                            break;
+                        case 11:
+                            imprimirDecoracao();
+                            printf("\n\t\t\t>> MATRICULAR ESTUDANTE <<\n\n");
+                            imprimirDecoracao();
+                            //### matricularEstudante(idEstudante, idDisciplina);
+                            break;
+                        default:
+                            printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+                    }
+                    break;
+                }
+            }
+            else
+            {
+                printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+            }
             break;
         }
     } while (1);
