@@ -11,10 +11,10 @@
 #define SALT_SIZE 16
 //Tamanho máximo das strings de leitura
 #define MAX 2048
+//Tamanho máximo das strings padrão de dados comuns
+#define MAX_DADOS 51
 //Parâmetro da função crypt
 #define PARAMETRO_CRYPT "$6$rounds=20000$%s$"
-//Variavel que será o separador dos campos no arquivo
-#define SEPARADOR " | "
 
 /**
 * - Identificador
@@ -49,6 +49,7 @@
 
 //Ponteiro para os arquivos
 FILE *dados = NULL, *notas = NULL, *disciplina = NULL, *curso = NULL;
+char temp[MAX * 5]; //Variável temporária para coleta de dados antes de validação e gravação de valores descartáveis.
 
 char arquivoUsuarios[] = "dados.txt";
 char arquivoNotas[] = "notas.txt";
@@ -80,13 +81,13 @@ void imprimirDados();
 void excluirDados();
 void imprimirDecoracao();
 short int testarArquivo(char *nomeArquivo);
-void editarDadosUsuario(int codigo);
+void editarDadosUsuario();
 void coletarDados(short int nome, short int sobrenome, short int email, short int identificador, short int senha, short int papel);
 void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtualizada);
-void concatenarDadosUsuario();
-void atualizarLinhaUsuario();
 short int inserirDadosPadrao(char *arquivo);
 short int atribuirProfessorDisciplina(int idDisciplina, int idProfessor);
+int selecionarUsuario(short int idPapelProcurado);
+char *descreverNomePapel(short int idPapel);
 
 /**
  * Estrutura para organização dos dados do usuário
@@ -94,15 +95,15 @@ short int atribuirProfessorDisciplina(int idDisciplina, int idProfessor);
 struct Usuario
 {
     int codigo;
-    char nome[51];
-    char sobrenome[51];
-    char email[51];
+    char nome[MAX_DADOS];
+    char sobrenome[MAX_DADOS];
+    char email[MAX_DADOS];
     char identificador[16];
     char salt[SALT_SIZE + 1];
     char senha[31];
     char *senhaCriptografada;
     short int papel;
-    char linhaUsuario[MAX];
+    char linhaUsuario[MAX]; //Essa string é utilizada para encontrar a linha do usuário no arquivo
     char linhaAtualizadaUsuario[MAX];
 };
 
@@ -112,7 +113,7 @@ struct Usuario
 struct Disciplina
 {
     int codigo;
-    char nome[51];
+    char nome[MAX_DADOS];
     int idCurso;
     int idProfessor;
     char descricao[MAX * 4];
@@ -139,12 +140,12 @@ int main()
             return 0;
     }
 
+    int a = selecionarUsuario(3);
+
     imprimirDecoracao();
     printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO! <<\n");
     char entrada = '0';
     int op = 0;
-
-    int a = atribuirProfessorDisciplina(1, 1);
 
     //Menu de opções
     do
@@ -159,7 +160,7 @@ int main()
         //Limpar a variável para evitar lixo de memória nas repetições
         entrada = '\0';
 
-        // system("cls || clear");
+        system("cls || clear");
         imprimirDecoracao();
         printf("\n\t\t>> MENU DE OPÇÕES <<\n");
         printf("\n> Informe um número para escolher uma opção e pressione ENTER:");
@@ -265,12 +266,12 @@ short int inserirDadosPadrao(char *arquivo)
  */
 int pegarProximoId(char *arquivo)
 {
-    int id = 0;
-    char linha[MAX];
-
     //Teste do arquivo
     if (testarArquivo(arquivo))
         return 0;
+
+    int id = 0;
+    // char temp[MAX];
 
     //Abrindo arquivo
     dados = fopen(arquivo, "r");
@@ -278,7 +279,7 @@ int pegarProximoId(char *arquivo)
     while (!feof(dados))
     {
         //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
-        fscanf(dados, "%d | %[^\n]", &id, linha);
+        fscanf(dados, "%d | %[^\n]", &id, temp);
     }
     fclose(dados);
 
@@ -309,7 +310,8 @@ void cadastrarUsuario()
     //Abrir o arquivo com parâmetro "a" de append, não sobrescreve as informações, apenas adiciona.
     dados = fopen(arquivoUsuarios, "a");
 
-    concatenarDadosUsuario();
+    //Passar dados cadastrados para a linha do usuário
+    sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
 
     //Insere a string com todos os dados no arquivo
     if (fputs(u.linhaUsuario, dados) == EOF)
@@ -326,46 +328,11 @@ void cadastrarUsuario()
 }
 
 /**
- * Preparar linha com dados do usuário para isnerir no arquivo
- */
-void concatenarDadosUsuario()
-{
-    char linha[MAX];                       //Declara variável que vai concatenar todos os valores para inserir no arquivo de uma só vez
-    memset(&linha[0], 0, sizeof(linha));   //Zerar a variável antes de começar a utilizá-la, para evitar que tenha valores prévios gravados no espaço de memória
-    char codigoString[16];                 //Variável que receberá o valor de código (inteiro), em formato string para fazer a concatenação e inserir no arquivo
-    sprintf(codigoString, "%d", u.codigo); //Converte o valor inteiro para String, permitindo usá-la posteriormente na função strcat
-    char papelString[2];                   //Variável que vai receber o número do papel e transformar em string para concatenar na linha e inserir no arquivo
-    sprintf(papelString, "%d", u.papel);   //Converte o valor inteiro para String, permitindo usá-lo posteriormente na função strcat
-
-    //Concatenção de valores na variável para jogar no arquivo somente uma string, de uma só vez
-    strcat(linha, codigoString);
-    strcat(linha, SEPARADOR);
-    strcat(linha, u.identificador);
-    strcat(linha, SEPARADOR);
-    strcat(linha, u.salt);
-    strcat(linha, SEPARADOR);
-    strcat(linha, u.senhaCriptografada);
-    strcat(linha, SEPARADOR);
-    strcat(linha, u.nome);
-    strcat(linha, SEPARADOR);
-    strcat(linha, u.sobrenome);
-    strcat(linha, SEPARADOR);
-    strcat(linha, u.email);
-    strcat(linha, SEPARADOR);
-    strcat(linha, papelString);
-    strcat(linha, "\n");
-
-    memset(&u.linhaAtualizadaUsuario[0], 0, sizeof(u.linhaAtualizadaUsuario));
-    strcpy(u.linhaAtualizadaUsuario, linha);
-    // printf("\n§ Linha: %s", linha);
-}
-
-/**
  * Coletar informações do usuário
  */
 void coletarDados(short int nome, short int sobrenome, short int email, short int identificador, short int senha, short int papel)
 {
-    char temp[MAX];                    //Variável para fazer a entrada de valores digitados e realizar a validação antes de atribuir à variável correta
+    // char temp[MAX];                    //Variável para fazer a entrada de valores digitados e realizar a validação antes de atribuir à variável correta
     memset(&temp[0], 0, sizeof(temp)); //Limpando a variável para garantir que não entre lixo de memória
 
     if (nome)
@@ -492,7 +459,7 @@ void coletarDados(short int nome, short int sobrenome, short int email, short in
 short int autenticar(short int ehLogin)
 {
     //Variaveis que guardam os dados lidos nas linhas do arquivo
-    char identificadorArquivo[16], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[51], sobrenomeArquivo[51], emailArquivo[51];
+    char identificadorArquivo[16], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[MAX_DADOS], sobrenomeArquivo[MAX_DADOS], emailArquivo[MAX_DADOS];
     int codigoArquivo = 0, papelArquivo = 0;
 
     /*Coleta do login e senha*/
@@ -536,7 +503,8 @@ short int autenticar(short int ehLogin)
                 strcpy(u.salt, saltArquivo);
                 strcpy(u.senhaCriptografada, criptografiaArquivo);
                 u.papel = papelArquivo;
-                atualizarLinhaUsuario();
+                //Salvar o formato da linha do usuário autenticado
+                sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
                 printf("\n\n# SUCESSO - Autenticação realizada!\n\n");
 
                 fclose(dados); //Fecha o arquivo
@@ -677,8 +645,8 @@ short int validarStringEmail(char *string)
  */
 short int validarIdentificador(char *identificador)
 {
-    char identificadorMaiusculo[MAX];                 //Variável que irá guardar o identificador convertido para maiúsculo, para simplificar a comparação com o nome e sobrenome
-    char temp[MAX];                                   //Variável para guardar valores descartáveis que virão do arquivo
+    char identificadorMaiusculo[MAX]; //Variável que irá guardar o identificador convertido para maiúsculo, para simplificar a comparação com o nome e sobrenome
+    // char temp[MAX];                                   //Variável para guardar valores descartáveis que virão do arquivo
     char identificadorArquivo[16];                    //Variável para guardar o identificador recebido do arquivo
     strcpy(identificadorMaiusculo, identificador);    //Copiando o identificador para transformar em maiúsculo
     alternarCapitalLetras(identificadorMaiusculo, 1); //Tornando maiúsculo
@@ -927,27 +895,15 @@ void limparEstruturaDisciplina()
 /**
  * Opções para o usuário autenticado
  */
-void areaLogada(int papel)
+void areaLogada()
 {
     char entrada[] = "00"; //Recebe a entrada que o usuário digitar
     int op = 0;            //Recebe o valor da entrada convertido para int para usar no switch
 
     imprimirDecoracao();
 
-    char papelString[13];
-    if (papel == 1)
-    {
-        strcpy(papelString, "Coordenador");
-    }
-    else if (papel == 2)
-    {
-        strcpy(papelString, "Professor");
-    }
-    else
-    {
-        strcpy(papelString, "Estudante");
-    }
-    printf("\n\t\t\tBEM-VINDO %s %s!\n", papelString, u.nome);
+    
+    printf("\n\t\t\tBEM-VINDO %s %s!\n", descreverNomePapel(u.papel), u.nome);
 
     //Menu de opções
     do
@@ -1040,6 +996,7 @@ void areaLogada(int papel)
             printf("\n\t\t\t>> DESCRIÇÃO DA DISCIPLINA <<\n\n");
             imprimirDecoracao();
             //### Função ver descrição disciplina
+            //### verDescricaoDisciplina
             break;
         case 6:
             imprimirDecoracao();
@@ -1193,7 +1150,11 @@ short int testarArquivo(char *nomeArquivo)
     return 0;
 }
 
-void editarDadosUsuario(int codigo)
+/**
+ * Disponibiliza um menu para o usuário escolher que dados do cadastro ele quer editar e salva 
+ * no arquivo de dados quando o usuário escolher a opção de Salvar no menu.
+ */
+void editarDadosUsuario()
 {
     //Validação para caso os arquivos não possa ser acessados.
     if (testarArquivo(arquivoUsuarios))
@@ -1201,8 +1162,7 @@ void editarDadosUsuario(int codigo)
 
     char entrada = '0'; //Recebe a entrada que o usuário digitar
     int op = 0;         //Recebe o valor da entrada convertido para int para usar no switch
-    char temp[MAX];
-    char linha[MAX];
+    // char temp[MAX];
 
     //Menu de opções
     do
@@ -1237,7 +1197,6 @@ void editarDadosUsuario(int codigo)
         //Converte o char para int para que possa ser verificado no switch
         op = entrada - '0';
 
-        //### - Implementar edição dos dados
         switch (op)
         {
         case 0:
@@ -1265,9 +1224,11 @@ void editarDadosUsuario(int codigo)
             coletarDados(0, 0, 0, 0, 0, 1);
             break;
         case 7:
-            concatenarDadosUsuario();
+            //Preparar linha com dados do usuário para inserir no arquivo
+            sprintf(u.linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
             atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, u.linhaAtualizadaUsuario);
-            atualizarLinhaUsuario();
+            //Atualizar a string da linha que está no arquivo agora
+            sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
             return;
         case 8:
             return;
@@ -1279,14 +1240,8 @@ void editarDadosUsuario(int codigo)
 }
 
 /**
- * Joga os dados das variáveis do usuário para a variável linhaUsuario, no formato que estarão no arquivo
+ * Faz a atualização do arquivo, procurando pela linha obsoleta e trocando pela linha atualizada.
  */
-void atualizarLinhaUsuario()
-{
-    //Salvar o formato da linha do usuário autenticado
-    sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
-}
-
 void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtualizada)
 {
     //Validação antes de acessar os arquivos.
@@ -1321,10 +1276,14 @@ void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtuali
     printf("\n# SUCESSO - Os dados foram atualizados.\n");
 }
 
+/**
+ * Define o id do professor passado como parâmetro para disciplina com id passado como parâmetro
+ * @return 0 caso falha e 1 caso sucesso.
+ */
 short int atribuirProfessorDisciplina(int idDisciplina, int idProfessor)
 {
-    char temp[MAX * 5], linhaAntiga[MAX * 5], linhaAtualizada[MAX * 5];
-    // char nomeArquivo[51], descricaoArquivo[MAX * 4];
+    char linhaAntiga[MAX * 5], linhaAtualizada[MAX * 5];
+    // char nomeArquivo[MAX_DADOS], descricaoArquivo[MAX * 4];
 
     //Validação para caso o arquivo não possa ser aberto.
     if (testarArquivo(arquivoDisciplina))
@@ -1350,7 +1309,68 @@ short int atribuirProfessorDisciplina(int idDisciplina, int idProfessor)
         }
     }
     // printf("\n§ DISCIPLINA:\ncodigo: %d\nnome: '%s'\nid Curso: %d\nid Professor: %d\nDescrição: %s", d.codigo, d.nome, d.idCurso, d.idProfessor, d.descricao);
-
+    printf("\n# ERRO - Não foi possível encontrar a disciplina selecionada.\n");
     fclose(dados);
     return 0;
+}
+
+/**
+ * Lista todos os usuários de um grupo específico passado no parâmetro inteiro 
+ * [1-Coordenadores, 2-Professores ou 3-Estudantes] 
+ * e dá opção de escolha ao usuário.
+ * @return id do usuário escolhido dentre os listados ou 0 em caso de falha
+ */
+int selecionarUsuario(short int idPapelProcurado)
+{
+    //Teste do arquivo
+    if (testarArquivo(arquivoUsuarios))
+        return 0;
+
+    int listaIds[MAX], idSelecionado = 0, idPapelLido = 0, idUsuarioLido = 0, i = 0;
+    char nomeUsuarioLido[MAX_DADOS], sobrenomeUsuarioLido[MAX_DADOS];
+    // char temp[MAX];
+
+    //Abrindo arquivo
+    dados = fopen(arquivoUsuarios, "r");
+
+    printf("\n# LISTANDO USUÁRIOS COM PAPEL: %s\n", descreverNomePapel(idPapelProcurado));
+    while (!feof(dados))
+    {
+        idUsuarioLido = 0;
+        idPapelLido = 0;
+
+        //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
+        fscanf(dados, "%d | %s | %s | %s | %s | %s | %s | %d\n", &idUsuarioLido, temp, temp, temp, nomeUsuarioLido, sobrenomeUsuarioLido, temp, &idPapelLido);
+
+        if (idPapelLido == idPapelProcurado)
+        {
+            listaIds[i] = idUsuarioLido;
+            printf("\n[%d] %s %s", listaIds[i], nomeUsuarioLido, sobrenomeUsuarioLido);
+            i++;
+        }
+    }
+    fclose(dados);
+
+    //### - Validar se o vetor não está vazio.
+    //### - Fazer a opção do usuário selecionar um id dentre os listados.
+    
+    return idSelecionado;
+}
+
+/** Retorna o nome do papel com base no id passado como parâmetro 
+ * [1-Coordenador, 2-Professor ou 3-Estudante]
+ * @return nome do papel
+ */
+char *descreverNomePapel(short int idPapel)
+{
+    if (idPapel == 1)
+    {
+        return "Coordenador";
+    }
+    else if (idPapel == 2)
+    {
+        return "Professor";
+    }
+
+    return "Estudante";
 }
