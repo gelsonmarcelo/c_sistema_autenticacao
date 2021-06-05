@@ -1,1 +1,1 @@
-1 | Segurança da Informação | 1 | 1 | Descrição padrão da disciplina de Segurança da Informação
+1 | Segurança da Informação | 1 | 9 | Descrição padrão da disciplina de Segurança da Informação
