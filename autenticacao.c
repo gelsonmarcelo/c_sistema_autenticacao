@@ -64,6 +64,12 @@ struct Usuario u;
 //Declaração da estrutura da disciplina
 struct Disciplina d;
 
+//Declaração da estrutura das notas
+struct Nota n;
+
+// ### - Ajustar descrição das funções inserindo descrição dos parâmetros e retornos
+// ### - Fazer validações nas entradas de dados com while(scanf(...) != X)
+
 /*Declaração das funções*/
 
 int pegarProximoId(char *arquivo);
@@ -87,12 +93,13 @@ void editarDadosUsuario();
 void coletarDados(short int nome, short int sobrenome, short int email, short int identificador, short int senha, short int papel);
 void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtualizada);
 short int inserirDadosPadrao(char *arquivo);
-short int atribuirProfessorDisciplina(int idDisciplina, int idProfessor);
 int selecionarUsuario(short int idPapelProcurado);
 char *descreverNomePapel(short int idPapel);
 int selecionarDisciplina(short int idCurso);
 void pausarPrograma();
-void verDescricaoDisciplina(int idDisciplina);
+void operarDisciplina(int idDisciplina, short int verDescricao, short int alterarDescricao, short int alterarProfessor);
+void matricularEstudanteDisciplina(int idEstudante, int idDisciplina);
+void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short int alterarNotas);
 
 /**
  * Estrutura para organização dos dados do usuário
@@ -125,6 +132,18 @@ struct Disciplina
 };
 
 /**
+ * Estrutura para organização dos dados da nota
+ */
+struct Nota
+{
+    int codigo;
+    float nota1;
+    float nota2;
+    int idEstudante;
+    int idDisciplina;
+};
+
+/**
  * Função principal
  */
 int main()
@@ -144,6 +163,8 @@ int main()
         if (inserirDadosPadrao(arquivoCurso) || inserirDadosPadrao(arquivoDisciplina))
             return 0;
     }
+
+    //
 
     imprimirDecoracao();
     printf("\n\t\t>> OLÁ, PROGRAMA INICIADO COM SUCESSO! <<\n");
@@ -813,6 +834,7 @@ short int validarSenha(char *senha)
 void gerarSalt()
 {
 
+    // ### - Resolver bug da autenticação
     char *buffer;                                                                                //Ponteiro onde serão armazenados os caracteres gerados aleatoriamente
     char listaCaracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./"; //Lista de caracteres para serem escolhidos para o salt
     int retorno;                                                                                 //Para guardar a quantidade de caracteres gerados na função getrandom
@@ -821,22 +843,23 @@ void gerarSalt()
     buffer = malloc(MAX_SALT);
 
     //Flag 0 para que a função utilize /dev/urandom - fonte de aleatoriedade do próprio Kernel.
-    retorno = getrandom(buffer, MAX_SALT, 0);
+    retorno = getrandom(buffer, MAX_SALT - 1, 0);
 
     //Verifica se a função retornou todo os bytes necessários
-    if (retorno != MAX_SALT)
+    if (retorno != MAX_SALT - 1)
     {
         perror("\n# FALHA - Erro ao obter caracteres para criação do salt\n");
     }
 
     //Loop para montagem da string do salt, escolhendo os caracteres
-    for (int i = 0; i < MAX_SALT; i++)
+    for (int i = 0; i < MAX_SALT - 1; i++)
     {
         /*Seleciona 1 caractere da lista: converte o caractere do buffer para unsigned char (número) e faz
         MOD quantidade de caracteres da lista, o resultado será (resto da divisão) o índice que contém o caractere a ser usado.
         Evitando assim que surjam caracteres que não podem ser interpretados pela codificação do SO ou caracteres não permitidos
         para uso na função crypt, posteriormente.*/
         u.salt[i] = listaCaracteres[((unsigned char)buffer[i]) % (strlen(listaCaracteres))];
+        printf("\n> %d : '%c'", i, u.salt[i]);
     }
     //Adiciona o caractere NULL na última posição da string salt
     u.salt[MAX_SALT] = '\0';
@@ -893,6 +916,7 @@ void limparEstruturaDisciplina()
 /**
  * Opções para o usuário autenticado
  */
+// ### - Criar loops para que o usuário possa repetir algumas operações sem ter que acessar a opção do menu cada vez.
 void areaLogada()
 {
     char entrada[] = "00"; //Recebe a entrada que o usuário digitar
@@ -997,21 +1021,20 @@ void areaLogada()
             imprimirDecoracao();
             printf("\n\t\t>> DESCRIÇÃO DA DISCIPLINA <<\n\n");
             imprimirDecoracao();
-            verDescricaoDisciplina(selecionarDisciplina(1));
+            operarDisciplina(selecionarDisciplina(1), 1, 0, 0);
             break;
         case 6:
             imprimirDecoracao();
             printf("\n\t\t\t>> NOTAS <<\n\n");
             imprimirDecoracao();
+            //Se o usuário logado for estudante, mostra apenas as notas dele
             if (u.papel == 3)
             {
-                //### Função ver notas apenas do estudante
-                //verNotas(u.codigo);
+                operarNotas(u.codigo, selecionarDisciplina(1), 1, 0);
             }
-            else
+            else //Se for outro papel, o usuário seleciona de qual estudante quer ver as notas
             {
-                //### Escolher qual estudante quer ver as notas
-                //verNotas(selecionarUsuario(3));
+                operarNotas(selecionarUsuario(3), selecionarDisciplina(1), 1, 0);
             }
             break;
         default:
@@ -1027,16 +1050,17 @@ void areaLogada()
                     break;
                 case 8:
                     imprimirDecoracao();
-                    printf("\n\t\t\t>> ALTERAR DESCRIÇÃO DA DISCIPLINA <<\n\n");
+                    printf("\n\t\t>> ALTERAR DESCRIÇÃO DA DISCIPLINA <<\n\n");
                     imprimirDecoracao();
-                    //### verDescricaoDisciplina();
+                    printf("\n# SELECIONE A DISCIPLINA QUE DESEJA ALTERAR A DESCRIÇÃO\n");
+                    operarDisciplina(selecionarDisciplina(1), 1, 1, 0);
                     break;
                 case 9:
                     imprimirDecoracao();
                     printf("\n\t\t\t>> ALTERAR NOTAS DOS ESTUDANTES <<\n\n");
                     imprimirDecoracao();
-                    //### listarEstudantes();
-                    //### alterarNotaEstudante(idEstudante);
+                    printf("\n# SELECIONE A DISCIPLINA E O ESTUDANTE QUE DESEJA ALTERAR AS NOTAS\n");
+                    operarNotas(selecionarUsuario(3), selecionarDisciplina(1), 1, 1);
                     break;
                 default:
                     if (u.papel == 1)
@@ -1054,14 +1078,15 @@ void areaLogada()
                             imprimirDecoracao();
                             printf("\n\t\t\t>> MATRICULAR ESTUDANTE <<\n\n");
                             imprimirDecoracao();
-                            //### matricularEstudante(idEstudante, idDisciplina);
+                            printf("\n# SELECIONE A DISCIPLINA E O ESTUDANTE QUE DESEJA MATRICULAR\n");
+                            matricularEstudanteDisciplina(selecionarUsuario(3), selecionarDisciplina(1));
                             break;
                         case 12:
                             imprimirDecoracao();
                             printf("\n\t\t>> DEFINIR PROFESSOR PARA DISCIPLINA <<\n\n");
                             imprimirDecoracao();
                             printf("\n# SELECIONE UMA DISCIPLINA E UM PROFESSOR PARA ATRIBUIR\n");
-                            atribuirProfessorDisciplina(selecionarDisciplina(1), selecionarUsuario(2));
+                            operarDisciplina(selecionarDisciplina(1), 0, 0, 1);
                             break;
                         default:
                             printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
@@ -1295,6 +1320,7 @@ void editarDadosUsuario()
 /**
  * Faz a atualização do arquivo, procurando pela linha obsoleta e trocando pela linha atualizada.
  */
+// ### - Fazer validação correta se a função conseguiu realizar todas as operações
 void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtualizada)
 {
     //Validação antes de acessar os arquivos.
@@ -1332,43 +1358,6 @@ void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtuali
 }
 
 /**
- * Define o id do professor passado como parâmetro para disciplina com id passado como parâmetro
- * @return 0 caso falha e 1 caso sucesso.
- */
-short int atribuirProfessorDisciplina(int idDisciplina, int idProfessor)
-{
-    char linhaAntiga[MAX * 5], linhaAtualizada[MAX * 5];
-    // char nomeArquivo[MAX_DADOS], descricaoArquivo[MAX * 4];
-
-    //Validação para caso o arquivo não possa ser aberto.
-    if (testarArquivo(arquivoDisciplina))
-        return 0;
-
-    //Abrir o arquivo com parâmetro "r" de read, apenas lê.
-    ponteiroArquivos = fopen(arquivoDisciplina, "r");
-    while (!feof(ponteiroArquivos))
-    {
-        //Lê as linhas até o final do arquivo
-        fscanf(ponteiroArquivos, "%d | %[^|] | %d | %d | %[^\n]", &d.codigo, d.nome, &d.idCurso, &d.idProfessor, d.descricao);
-
-        if (d.codigo == idDisciplina)
-        {
-            sprintf(linhaAntiga, "%d | %s| %d | %d | %s\n", d.codigo, d.nome, d.idCurso, d.idProfessor, d.descricao);
-            // printf("\n§ Linha Antiga: '%s'", linhaAntiga);
-            sprintf(linhaAtualizada, "%d | %s| %d | %d | %s\n", d.codigo, d.nome, d.idCurso, idProfessor, d.descricao);
-            // printf("\n§ Linha Atualizada: '%s'", linhaAtualizada);
-
-            fclose(ponteiroArquivos);
-            atualizarLinhaArquivo(arquivoDisciplina, linhaAntiga, linhaAtualizada);
-            return 1;
-        }
-    }
-    printf("\n# ERRO - Não foi possível encontrar a disciplina selecionada.\n");
-    fclose(ponteiroArquivos);
-    return 0;
-}
-
-/**
  * Lista todos os usuários de um grupo específico passado no parâmetro inteiro 
  * [1-Coordenadores, 2-Professores ou 3-Estudantes] 
  * e dá opção de escolha ao usuário.
@@ -1386,7 +1375,7 @@ int selecionarUsuario(short int idPapelProcurado)
     //Abrindo arquivo
     ponteiroArquivos = fopen(arquivoUsuarios, "r");
 
-    printf("\n\t*** Listando usuários com papel: %s ***\n", descreverNomePapel(idPapelProcurado));
+    printf("\n\t\t*** LISTANDO USUÁRIOS COM PAPEL: %s ***\n", descreverNomePapel(idPapelProcurado));
     while (!feof(ponteiroArquivos))
     {
         idUsuarioLido = 0;
@@ -1466,7 +1455,7 @@ int selecionarDisciplina(short int idCurso)
     //Abrindo arquivo
     ponteiroArquivos = fopen(arquivoDisciplina, "r");
 
-    printf("\n\t*** Listando disciplinas do curso ***\n");
+    printf("\n\t\t*** LISTANDO DISCIPLINAS DO CURSO ***\n");
     while (!feof(ponteiroArquivos))
     {
         idDisciplinaLida = 0;
@@ -1525,32 +1514,73 @@ void pausarPrograma()
 }
 
 /**
- * Busca a disciplina com id passado como parâmetro para imprimir a sua descrição
+ * Essa função é capaz de exibir a descrição da disciplina, alterar a descrição da disciplina e 
+ * alterar o professor da disciplina.
+ * @param idDisciplina ID da disciplina que deseja realizar uma das operações
+ * @param verDescrição flag booleana para visualizar a descrição da disciplina
+ * @param alterarDescricao flag booleana para alterar a descrição da disciplina
+ * @param alterarProfessor flag booleana para alterar o professor da disciplina
  */
-void verDescricaoDisciplina(int idDisciplina)
+void operarDisciplina(int idDisciplina, short int verDescricao, short int alterarDescricao, short int alterarProfessor)
 {
-
     //Teste do arquivo
     if (testarArquivo(arquivoDisciplina))
         return;
-
-    int idDisciplinaLida = 0;
-    char descricaoDisciplinaLida[MAX * 4];
 
     //Abrindo arquivo
     ponteiroArquivos = fopen(arquivoDisciplina, "r");
 
     while (!feof(ponteiroArquivos))
     {
-        idDisciplinaLida = 0;
-
         //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
-        fscanf(ponteiroArquivos, "%d | %[^|] | %s | %s | %[^\n]", &idDisciplinaLida, temp, temp, temp, descricaoDisciplinaLida);
+        fscanf(ponteiroArquivos, "%d | %[^|] | %d | %d | %[^\n]", &d.codigo, d.nome, &d.idCurso, &d.idProfessor, d.descricao);
 
-        if (idDisciplinaLida == idDisciplina)
+        if (d.codigo == idDisciplina)
         {
-            printf("\n[Descrição] \"%s\"\n", descricaoDisciplinaLida);
+            //Fechar o arquivo já que não é mais necessário
             fclose(ponteiroArquivos);
+
+            if (verDescricao)
+                printf("\n# Descrição da disciplina %s\n¬ \"%s\"\n", d.nome, d.descricao);
+
+            if (alterarDescricao || alterarProfessor)
+            {
+                char linhaAntiga[MAX * 5], linhaAtualizada[MAX * 5];
+                sprintf(linhaAntiga, "%d | %s| %d | %d | %s\n", d.codigo, d.nome, d.idCurso, d.idProfessor, d.descricao);
+                // printf("\n§ Linha Antiga: '%s'", linhaAntiga);
+
+                if (alterarDescricao)
+                {
+                    //Colher a nova descrição e validar se não está vazia
+                    do
+                    {
+                        memset(&d.descricao[0], 0, sizeof(d.descricao));
+                        printf("\n> Insira a nova descrição da disciplina [Pressione ENTER para finalizar]: ");
+                        setbuf(stdin, NULL);
+                        scanf("%[^\n]", d.descricao);
+
+                        //Valida se a descrição não está vazia
+                        if (!strcmp(d.descricao, ""))
+                        {
+                            printf("\n# FALHA - A descrição da disciplina não pode ficar vazia.\n");
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    } while (1);
+                }
+
+                if (alterarProfessor)
+                {
+                    d.idProfessor = selecionarUsuario(2);
+                }
+
+                sprintf(linhaAtualizada, "%d | %s| %d | %d | %s\n", d.codigo, d.nome, d.idCurso, d.idProfessor, d.descricao);
+                // printf("\n§ Linha Atualizada: '%s'", linhaAtualizada);
+
+                atualizarLinhaArquivo(arquivoDisciplina, linhaAntiga, linhaAtualizada);
+            }
             return;
         }
     }
@@ -1558,4 +1588,166 @@ void verDescricaoDisciplina(int idDisciplina)
 
     // Se chegar aqui não encontrou a disciplina selecionada
     printf("\n# ERRO - A disciplina solicitada não foi localizada\n");
+}
+
+/**
+ * Matricula o estudante com ID passado no primeiro parâmetro na disciplina passada com ID no segundo parêmetro.
+ * Criando o registro do usuário no arquivo de notas
+ */
+void matricularEstudanteDisciplina(int idEstudante, int idDisciplina)
+{
+    //Validação para caso o arquivo não possa ser aberto.
+    if (testarArquivo(arquivoNotas))
+        return;
+
+    //Verificar se o estudante já está matriculado
+    ponteiroArquivos = fopen(arquivoNotas, "r");
+    //Passa pelas linhas verificando se encontra o id do estudante e disciplina, que serão matriculados.
+    while (!feof(ponteiroArquivos))
+    {
+        //Lê as linhas até o final do arquivo, os dados para as variáveis da estrutura
+        fscanf(ponteiroArquivos, "%d | %f | %f | %d | %d", &n.codigo, &n.nota1, &n.nota2, &n.idEstudante, &n.idDisciplina);
+
+        if (n.idEstudante == idEstudante && n.idDisciplina == idDisciplina)
+        {
+            //Fechar o arquivo já que não é mais necessário
+            fclose(ponteiroArquivos);
+            printf("\n# FALHA - Esse estudante já está matriculado nessa disciplina!\n");
+            return;
+        }
+    }
+    fclose(ponteiroArquivos);
+
+    /*Inicia o processo de matrícula do aluno*/
+    char linhaNota[MAX]; //Variável que guarda a linha com os dados para inserir no arquivo de notas
+    int codigo = pegarProximoId(arquivoNotas);
+
+    //Abrir o arquivo com parâmetro "a" de append, não sobrescreve as informações, apenas adiciona.
+    ponteiroArquivos = fopen(arquivoNotas, "a");
+
+    //Passar dados cadastrados para a variável que será inserida no arquivo
+    sprintf(linhaNota, "%d | %.2f | %.2f | %d | %d\n", codigo, -1.0, -1.0, idEstudante, idDisciplina);
+
+    //Insere a string com todos os dados no arquivo
+    if (fputs(linhaNota, ponteiroArquivos) == EOF)
+    {
+        perror("\n# ERRO - Problema para inserir os dados no arquivo!\n");
+    }
+    else
+    {
+        printf("\n# SUCESSO - Matrícula efetuada!\n");
+    }
+
+    fclose(ponteiroArquivos); //Fecha o arquivo
+}
+
+/**
+ * Essa função pode exibir e/ou alterar as notas de determinado estudante.
+ * @param idEstudante ID do estudante que deseja realizar uma das operações
+ * @param idDisciplina ID da disciplina que deseja realizar uma das operações
+ * @param verNotas flag booleana para exibir as notas do estudante selecionado
+ * @param alterarNotas flag booleana para alterar as notas do estudante selecionado
+ */
+void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short int alterarNotas)
+{
+    //Teste do arquivo
+    if (testarArquivo(arquivoNotas))
+        return;
+
+    ponteiroArquivos = fopen(arquivoNotas, "r"); //Abrindo arquivo
+
+    while (!feof(ponteiroArquivos))
+    {
+        //Lê as linhas até o final do arquivo, atribuindo o os valores da linha nas variáveis
+        fscanf(ponteiroArquivos, "%d | %f | %f | %d | %d", &n.codigo, &n.nota1, &n.nota2, &n.idEstudante, &n.idDisciplina);
+
+        if (n.idEstudante == idEstudante && n.idDisciplina == idDisciplina)
+        {
+            //Fechar o arquivo já que não é mais necessário
+            fclose(ponteiroArquivos);
+
+            if (verNotas)
+            {
+                if (n.nota1 < 0)
+                {
+                    printf("\n¬ Nota 1: -");
+                }
+                else
+                {
+                    printf("\n¬ Nota 1: %.2f", n.nota1);
+                }
+
+                if (n.nota2 < 0)
+                {
+                    printf("\n¬ Nota 2: -\n");
+                }
+                else
+                {
+                    printf("\n¬ Nota 2: %.2f\n", n.nota2);
+                }
+            }
+
+            if (alterarNotas)
+            {
+                char linhaAntiga[MAX], linhaAtualizada[MAX];
+                int op = 0;
+                sprintf(linhaAntiga, "%d | %.2f | %.2f | %d | %d\n", n.codigo, n.nota1, n.nota2, n.idEstudante, n.idDisciplina);
+                // printf("\n§ Linha Antiga: '%s'", linhaAntiga);
+
+                printf("\n> Escolha qual nota quer alterar: ");
+                printf("\n[1] Nota 1");
+                printf("\n[2] Nota 2\n> ");
+                //Loop para colher as notas e validar
+                do
+                {
+                    setbuf(stdin, NULL);
+                    scanf("%d", &op);
+
+                    if (op == 1)
+                    {
+                        do
+                        {
+                            // ### - Fazer validação para quando o usuário digitar ,
+                            printf("\n> Insira a nota 1...\n[A nota deve ser entre 0 e 10, números decimais devem ser escritos com . (ponto final) ao invés de , (vírgula)]\n[Caso informe valores inválidos o sistema solicitará a nota novamente]\n> ");
+                            setbuf(stdin, NULL);
+                            while (scanf("%f", &n.nota1) != 1)
+                            {
+                                printf("\n# FALHA - Ocorreu um erro na leitura. Digite novamente:\n> ");
+                                setbuf(stdin, NULL);
+                            };
+                        } while (n.nota1 < 0 || n.nota1 > 10);
+                        break;
+                    }
+                    else if (op == 2)
+                    {
+                        do
+                        {
+                            printf("\n> Insira a nota 2...\n[A nota deve ser entre 0 e 10, números decimais devem ser escritos com . ao invés de ,]\n[Caso informe valores inválidos o sistema solicitará a nota novamente]\n> ");
+                            setbuf(stdin, NULL);
+                            while (scanf("%f", &n.nota2) != 1)
+                            {
+                                printf("\n# FALHA - Ocorreu um erro na leitura. Digite novamente:\n> ");
+                                setbuf(stdin, NULL);
+                            };
+                        } while (n.nota2 < 0 || n.nota2 > 10);
+                        break;
+                    }
+                    else
+                    {
+                        printf("\n# FALHA - Digite o número correspondente à nota que quer alterar da lista exibida!\n> ");
+                    }
+                } while (1);
+
+                sprintf(linhaAtualizada, "%d | %.2f | %.2f | %d | %d\n", n.codigo, n.nota1, n.nota2, n.idEstudante, n.idDisciplina);
+
+                atualizarLinhaArquivo(arquivoNotas, linhaAntiga, linhaAtualizada);
+            }
+
+            return;
+        }
+    }
+    fclose(ponteiroArquivos);
+
+    // Se chegar aqui não encontrou a linha com o estudante e disciplina solicitados
+    printf("\n# ERRO - Estudante não está matriculado na disciplina solicitada.\n");
 }
