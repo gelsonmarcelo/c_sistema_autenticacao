@@ -51,7 +51,7 @@
 
 //Ponteiro para os arquivos
 FILE *ponteiroArquivos = NULL;
-char temp[MAX * 5]; //Variável temporária para coleta de dados antes de validação e gravação de valores descartáveis.
+char temp[MAX * 5]; //Variável temporária para gravação de valores descartáveis.
 
 char arquivoUsuarios[] = "dados.txt";
 char arquivoNotas[] = "notas.txt";
@@ -80,7 +80,7 @@ void criptografarSenha();
 void limparEstruturaUsuario();
 void areaLogada();
 void verDadosUsuario(int idUsuario);
-void excluirDados();
+short int excluirDados();
 void imprimirDecoracao();
 short int testarArquivo(char *nomeArquivo);
 void editarDadosUsuario();
@@ -91,6 +91,8 @@ short int atribuirProfessorDisciplina(int idDisciplina, int idProfessor);
 int selecionarUsuario(short int idPapelProcurado);
 char *descreverNomePapel(short int idPapel);
 int selecionarDisciplina(short int idCurso);
+void pausarPrograma();
+void verDescricaoDisciplina(int idDisciplina);
 
 /**
  * Estrutura para organização dos dados do usuário
@@ -151,12 +153,7 @@ int main()
     //Menu de opções
     do
     {
-        printf("\nPressione ENTER para continuar...\n");
-        setbuf(stdin, NULL);
-        getchar();
-
-        //Limpa o buffer do teclado para evitar que lixo de memória seja lido ao invés da entrada do usuário
-        setbuf(stdin, NULL);
+        pausarPrograma();
 
         //Limpar a variável para evitar lixo de memória nas repetições
         entrada = '\0';
@@ -509,14 +506,14 @@ short int autenticar(short int ehLogin)
                 printf("\n\n# SUCESSO - Autenticação realizada!\n\n");
 
                 fclose(ponteiroArquivos); //Fecha o arquivo
-                return 1;           //Retorna 1, true
+                return 1;                 //Retorna 1, true
             }
             //Se não for login, a autenticação só poderá liberar o acesso caso o usuário autenticando seja o usuário que está logado
             else if (u.codigo == codigoArquivo)
             {
                 printf("\n\n# SUCESSO - Acesso autorizado.\n\n");
                 fclose(ponteiroArquivos); //Fecha o arquivo
-                return 1;           //Retorna 1, true
+                return 1;                 //Retorna 1, true
             }
             else
             {
@@ -908,13 +905,7 @@ void areaLogada()
     //Menu de opções
     do
     {
-        printf("\nPressione ENTER para continuar...\n");
-        //Limpa o buffer do teclado para evitar que lixo de memória (geralmente ENTER) seja lido ao invés da entrada do usuário
-        setbuf(stdin, NULL);
-        //Apenas uma pausa para que as informações fiquem na tela
-        getchar();
-        //Limpa o ENTER digitado no getchar()
-        setbuf(stdin, NULL);
+        pausarPrograma();
         //Limpar a variável para evitar lixo de memória nas repetições
         memset(&entrada[0], 0, sizeof(entrada));
 
@@ -954,7 +945,6 @@ void areaLogada()
         //Converte o char para int para que possa ser verificado no switch
         op = atoi(entrada);
 
-        //### - Restringir acessos conforme papel
         switch (op)
         {
         case 0:
@@ -968,6 +958,7 @@ void areaLogada()
             else //O usuário digitou um caractere não inteiro
             {
                 printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+                setbuf(stdin, NULL);
                 getchar();
             }
             break;
@@ -977,9 +968,19 @@ void areaLogada()
         case 2:
             imprimirDecoracao();
             printf("\n\t\t\t>> EXCLUIR CONTA <<\n\n");
-            excluirDados();
-            limparEstruturaUsuario();
-            return;
+            if (excluirDados())
+            {
+                limparEstruturaUsuario();
+                getchar();
+                return;
+            }
+            else
+            {
+                printf("\n# OPERAÇÃO CANCELADA\n");
+                getchar();
+            }
+
+            break;
         case 3:
             imprimirDecoracao();
             printf("\n\t\t\t>> MEUS DADOS <<\n\n");
@@ -994,10 +995,9 @@ void areaLogada()
             break;
         case 5:
             imprimirDecoracao();
-            printf("\n\t\t\t>> DESCRIÇÃO DA DISCIPLINA <<\n\n");
+            printf("\n\t\t>> DESCRIÇÃO DA DISCIPLINA <<\n\n");
             imprimirDecoracao();
-            //### Função ver descrição disciplina
-            //### verDescricaoDisciplina
+            verDescricaoDisciplina(selecionarDisciplina(1));
             break;
         case 6:
             imprimirDecoracao();
@@ -1144,16 +1144,24 @@ void verDadosUsuario(int idUsuario)
 
 /**
  * Excluir os dados do usuário do arquivo de dados
+ * @return 1 se o cadastro foi deletado e 0 se foi cancelado pelo usuário ou por falha no arquivo
  */
-void excluirDados()
+short int excluirDados()
 {
+    printf("# AVISO - Tem certeza que deseja excluir seu cadastro?\n# Essa ação não pode ser desfeita! [s/n]\n>");
+    setbuf(stdin, NULL);
+    if (getchar() != 's')
+    {
+        return 0;
+    }
+
     //Validação para caso os arquivos não possa ser acessados.
     if (testarArquivo(arquivoUsuarios) || testarArquivo("transferindo.txt"))
-        return;
+        return 0;
 
-    ponteiroArquivos = fopen(arquivoUsuarios, "r");     //Arquivo de entrada
-    FILE *saida = fopen("transferindo.txt", "w"); //Arquivo de saída
-    char texto[MAX];                              //Uma string grande para armazenar as linhas lidas
+    ponteiroArquivos = fopen(arquivoUsuarios, "r"); //Arquivo de entrada
+    FILE *saida = fopen("transferindo.txt", "w");   //Arquivo de saída
+    char texto[MAX];                                //Uma string grande para armazenar as linhas lidas
 
     //Loop pelas linhas do arquivo
     while (fgets(texto, MAX, ponteiroArquivos) != NULL)
@@ -1173,6 +1181,7 @@ void excluirDados()
     //Renomeia o arquivo onde foram passadas as linhas que não seriam excluidas para o nome do arquivo de dados de entrada
     rename("transferindo.txt", arquivoUsuarios);
     printf("\n# SUCESSO - Seu cadastro foi deletado.\n");
+    return 1;
 }
 
 /**
@@ -1217,13 +1226,7 @@ void editarDadosUsuario()
     //Menu de opções
     do
     {
-        printf("\nPressione ENTER para continuar...\n");
-        //Limpa o buffer do teclado para evitar que lixo de memória (geralmente ENTER) seja lido ao invés da entrada do usuário
-        setbuf(stdin, NULL);
-        //Apenas uma pausa para que as informações fiquem na tela
-        getchar();
-        //Limpa o ENTER digitado no getchar()
-        setbuf(stdin, NULL);
+        pausarPrograma();
         //Limpar a variável para evitar lixo de memória nas repetições
         entrada = '\0';
 
@@ -1505,4 +1508,54 @@ int selecionarDisciplina(short int idCurso)
     } while (1);
 
     return idSelecionado;
+}
+
+/**
+ * Para o programa para que o usuário possa ler mensagens antes de limpar a tela
+ */
+void pausarPrograma()
+{
+    printf("\nPressione ENTER para continuar...\n");
+    //Limpa o buffer do teclado para evitar que lixo de memória (geralmente ENTER) seja lido ao invés da entrada do usuário
+    setbuf(stdin, NULL);
+    //Apenas uma pausa para que as informações fiquem na tela
+    getchar();
+    //Limpa o ENTER digitado no getchar()
+    setbuf(stdin, NULL);
+}
+
+/**
+ * Busca a disciplina com id passado como parâmetro para imprimir a sua descrição
+ */
+void verDescricaoDisciplina(int idDisciplina)
+{
+
+    //Teste do arquivo
+    if (testarArquivo(arquivoDisciplina))
+        return;
+
+    int idDisciplinaLida = 0;
+    char descricaoDisciplinaLida[MAX * 4];
+
+    //Abrindo arquivo
+    ponteiroArquivos = fopen(arquivoDisciplina, "r");
+
+    while (!feof(ponteiroArquivos))
+    {
+        idDisciplinaLida = 0;
+
+        //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
+        fscanf(ponteiroArquivos, "%d | %[^|] | %s | %s | %[^\n]", &idDisciplinaLida, temp, temp, temp, descricaoDisciplinaLida);
+
+        if (idDisciplinaLida == idDisciplina)
+        {
+            printf("\n[Descrição] \"%s\"\n", descricaoDisciplinaLida);
+            fclose(ponteiroArquivos);
+            return;
+        }
+    }
+    fclose(ponteiroArquivos);
+
+    // Se chegar aqui não encontrou a disciplina selecionada
+    printf("\n# ERRO - A disciplina solicitada não foi localizada\n");
 }
