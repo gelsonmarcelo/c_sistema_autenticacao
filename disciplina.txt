@@ -1,1 +1,1 @@
-1 | Segurança da Informação | 1 | 9 | nova descricação
+1 | Segurança da Informação | 1 | 42 | Esse é um teste de nova descrição de disciplina

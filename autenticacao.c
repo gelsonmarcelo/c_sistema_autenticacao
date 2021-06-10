@@ -7,13 +7,15 @@
 #include <sys/random.h>
 #include <errno.h>
 
-//Tamanho definido do sal
-#define MAX_SALT 17
-//Tamanho máximo das strings de leitura
+//Tamanho definido do salt
+#define SALT_SIZE 16
+//Tamanho grande para ser utilizado em algumas strings
 #define MAX 2048
-//Tamanho máximo das strings padrão de dados comuns
+//Tamanho máximo das strings padrão de dados comuns (contando com o último caractere NULL)
 #define MAX_DADOS 51
+//Tamanho máximo da string do identificador (contando com o último caractere NULL)
 #define MAX_IDENTIFICADOR 16
+//Tamanho máximo da string da senha (contando com o último caractere NULL)
 #define MAX_SENHA 31
 //Parâmetro da função crypt
 #define PARAMETRO_CRYPT "$6$rounds=20000$%s$"
@@ -111,7 +113,7 @@ struct Usuario
     char sobrenome[MAX_DADOS];
     char email[MAX_DADOS];
     char identificador[MAX_IDENTIFICADOR];
-    char salt[MAX_SALT];
+    char salt[SALT_SIZE + 1];
     char senha[MAX_SENHA];
     char *senhaCriptografada;
     short int papel;
@@ -478,7 +480,7 @@ void coletarDados(short int nome, short int sobrenome, short int email, short in
 short int autenticar(short int ehLogin)
 {
     //Variaveis que guardam os dados lidos nas linhas do arquivo
-    char identificadorArquivo[MAX_IDENTIFICADOR], saltArquivo[MAX_SALT], criptografiaArquivo[120], usuarioArquivo[MAX_DADOS], sobrenomeArquivo[MAX_DADOS], emailArquivo[MAX_DADOS];
+    char identificadorArquivo[MAX_IDENTIFICADOR], saltArquivo[SALT_SIZE + 1], criptografiaArquivo[120], usuarioArquivo[MAX_DADOS], sobrenomeArquivo[MAX_DADOS], emailArquivo[MAX_DADOS];
     int codigoArquivo = 0, papelArquivo = 0;
 
     /*Coleta do login e senha*/
@@ -664,8 +666,7 @@ short int validarStringEmail(char *string)
  */
 short int validarIdentificador(char *identificador)
 {
-    char identificadorMaiusculo[MAX];                 //Variável que irá guardar o identificador convertido para maiúsculo, para simplificar a comparação com o nome e sobrenome
-                                                      //Variável para guardar valores descartáveis que virão do arquivo
+    char identificadorMaiusculo[MAX_IDENTIFICADOR];                 //Variável que irá guardar o identificador convertido para maiúsculo, para simplificar a comparação com o nome e sobrenome
     char identificadorArquivo[MAX_IDENTIFICADOR];     //Variável para guardar o identificador recebido do arquivo
     strcpy(identificadorMaiusculo, identificador);    //Copiando o identificador para transformar em maiúsculo
     alternarCapitalLetras(identificadorMaiusculo, 1); //Tornando maiúsculo
@@ -834,25 +835,24 @@ short int validarSenha(char *senha)
 void gerarSalt()
 {
 
-    // ### - Resolver bug da autenticação
     char *buffer;                                                                                //Ponteiro onde serão armazenados os caracteres gerados aleatoriamente
     char listaCaracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./"; //Lista de caracteres para serem escolhidos para o salt
     int retorno;                                                                                 //Para guardar a quantidade de caracteres gerados na função getrandom
 
     //Reservar espaço do tamanho do salt na memória
-    buffer = malloc(MAX_SALT);
+    buffer = malloc(SALT_SIZE + 1);
 
     //Flag 0 para que a função utilize /dev/urandom - fonte de aleatoriedade do próprio Kernel.
-    retorno = getrandom(buffer, MAX_SALT - 1, 0);
+    retorno = getrandom(buffer, SALT_SIZE, 0);
 
     //Verifica se a função retornou todo os bytes necessários
-    if (retorno != MAX_SALT - 1)
+    if (retorno != SALT_SIZE)
     {
         perror("\n# FALHA - Erro ao obter caracteres para criação do salt\n");
     }
 
     //Loop para montagem da string do salt, escolhendo os caracteres
-    for (int i = 0; i < MAX_SALT - 1; i++)
+    for (int i = 0; i < SALT_SIZE; i++)
     {
         /*Seleciona 1 caractere da lista: converte o caractere do buffer para unsigned char (número) e faz
         MOD quantidade de caracteres da lista, o resultado será (resto da divisão) o índice que contém o caractere a ser usado.
@@ -862,7 +862,7 @@ void gerarSalt()
         printf("\n> %d : '%c'", i, u.salt[i]);
     }
     //Adiciona o caractere NULL na última posição da string salt
-    u.salt[MAX_SALT] = '\0';
+    u.salt[SALT_SIZE] = '\0';
 }
 
 /**
@@ -874,7 +874,7 @@ void criptografarSenha()
     u.senhaCriptografada = malloc(120);
 
     //Variável que armazena o valor do parâmetro (formatado) para função crypt
-    char idSaltSenha[strlen(PARAMETRO_CRYPT) + MAX_SALT];
+    char idSaltSenha[strlen(PARAMETRO_CRYPT) + SALT_SIZE];
 
     //Incluindo o valor do salt gerado na variável (idSaltSenha)
     sprintf(idSaltSenha, PARAMETRO_CRYPT, u.salt);
@@ -936,7 +936,7 @@ void areaLogada()
         system("cls || clear");
         imprimirDecoracao();
         printf("\n\t\t\tLOGADO COMO %s.\n", u.nome);
-        //Qualquer tem acesso
+        //Qualquer papel tem acesso
         printf("\n> Informe um número para escolher uma opção e pressione ENTER:");
         printf("\n___________________________________");
         printf("\n[0] ENCERRAR PROGRAMA");
@@ -1121,7 +1121,7 @@ void verDadosUsuario(int idUsuario)
         if (testarArquivo(arquivoUsuarios))
             return;
 
-        char nome[MAX_DADOS], sobrenome[MAX_DADOS], email[MAX_DADOS], identificador[MAX_IDENTIFICADOR], salt[MAX_SALT], senhaCriptografada[120];
+        char nome[MAX_DADOS], sobrenome[MAX_DADOS], email[MAX_DADOS], identificador[MAX_IDENTIFICADOR], salt[SALT_SIZE + 1], senhaCriptografada[120];
         int idPapel = 0, idLido = 0;
 
         //Abrindo arquivo
