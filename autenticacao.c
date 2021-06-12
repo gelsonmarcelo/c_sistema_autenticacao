@@ -37,7 +37,7 @@
 
 /**
     ❖ Coordenador:
-        ➢ Dados dos Estudantes: ver dados; alterar dados;
+        ➢ Dados dos Estudantes: ver dados;
         ➢ Disciplina: ver descrição da disciplina; alterar descrição da disciplina;
             matricular estudante;
         ➢ Notas: ver notas; alterar notas.
@@ -46,9 +46,10 @@
         ➢ Disciplina: ver descrição da disciplina; alterar descrição da disciplina;
         ➢ Notas: ver notas; alterar notas.
     ❖ Estudante:
-        ➢ Dados dos Estudantes: ;
-        ➢ Disciplina: ver descrição da disciplina; matricular estudante;
-        ➢ Notas: ver notas
+        ➢ Dados dos Estudantes: ver dados*;
+        ➢ Disciplina: ver descrição da disciplina; matricular estudante*;
+        ➢ Notas: ver notas*
+        *Somente próprias informações
  */
 
 //Ponteiro para os arquivos
@@ -666,7 +667,7 @@ short int validarStringEmail(char *string)
  */
 short int validarIdentificador(char *identificador)
 {
-    char identificadorMaiusculo[MAX_IDENTIFICADOR];                 //Variável que irá guardar o identificador convertido para maiúsculo, para simplificar a comparação com o nome e sobrenome
+    char identificadorMaiusculo[MAX_IDENTIFICADOR];   //Variável que irá guardar o identificador convertido para maiúsculo, para simplificar a comparação com o nome e sobrenome
     char identificadorArquivo[MAX_IDENTIFICADOR];     //Variável para guardar o identificador recebido do arquivo
     strcpy(identificadorMaiusculo, identificador);    //Copiando o identificador para transformar em maiúsculo
     alternarCapitalLetras(identificadorMaiusculo, 1); //Tornando maiúsculo
@@ -859,7 +860,7 @@ void gerarSalt()
         Evitando assim que surjam caracteres que não podem ser interpretados pela codificação do SO ou caracteres não permitidos
         para uso na função crypt, posteriormente.*/
         u.salt[i] = listaCaracteres[((unsigned char)buffer[i]) % (strlen(listaCaracteres))];
-        printf("\n> %d : '%c'", i, u.salt[i]);
+        // printf("\n§ > %d : '%c'", i, u.salt[i]);
     }
     //Adiciona o caractere NULL na última posição da string salt
     u.salt[SALT_SIZE] = '\0';
@@ -951,15 +952,19 @@ void areaLogada()
         if (u.papel == 1 || u.papel == 2)
         {
             printf("\n[7] Ver dados estudantes");
-            printf("\n[8] Alterar descrição da disciplina");
+            printf("\n[8] Alterar descrição de disciplina");
             printf("\n[9] Alterar notas");
         }
         //Coordenador tem acesso
         if (u.papel == 1)
         {
-            printf("\n[10] Alterar dados estudantes");
-            printf("\n[11] Matricular estudante");
-            printf("\n[12] Definir professor em disciplina");
+            printf("\n[10] Matricular estudante");
+            printf("\n[11] Definir professor em disciplina");
+        }
+        //Coordenador e estudante tem acesso
+        if (u.papel == 3)
+        {
+            printf("\n[7] Matricular-se em disciplina");
         }
 
         imprimirDecoracao();
@@ -1030,11 +1035,30 @@ void areaLogada()
             //Se o usuário logado for estudante, mostra apenas as notas dele
             if (u.papel == 3)
             {
+                printf("\n# SELECIONE A DISCIPLINA QUE DESEJA VER SUAS NOTAS\n");
                 operarNotas(u.codigo, selecionarDisciplina(1), 1, 0);
             }
             else //Se for outro papel, o usuário seleciona de qual estudante quer ver as notas
             {
+                printf("\n# SELECIONE A DISCIPLINA E O ESTUDANTE QUE DESEJA VER AS NOTAS\n");
                 operarNotas(selecionarUsuario(3), selecionarDisciplina(1), 1, 0);
+            }
+            break;
+        case 7:
+            imprimirDecoracao();
+            if (u.papel != 3)
+            {
+                printf("\n\t\t\t>> VER DADOS DE ESTUDANTES <<\n\n");
+                imprimirDecoracao();
+                printf("\n# SELECIONE O ESTUDANTE QUE DESEJA VER OS DADOS\n");
+                verDadosUsuario(selecionarUsuario(3));
+            }
+            else
+            {
+                printf("\n\t\t>> MATRICULAR EM DISCIPLINA <<\n\n");
+                imprimirDecoracao();
+                printf("\n# SELECIONE A DISCIPLINA PARA MATRICULAR-SE\n");
+                matricularEstudanteDisciplina(u.codigo, selecionarDisciplina(1));
             }
             break;
         default:
@@ -1042,12 +1066,6 @@ void areaLogada()
             {
                 switch (op)
                 {
-                case 7:
-                    imprimirDecoracao();
-                    printf("\n\t\t\t>> VER DADOS ESTUDANTES <<\n\n");
-                    imprimirDecoracao();
-                    verDadosUsuario(selecionarUsuario(3));
-                    break;
                 case 8:
                     imprimirDecoracao();
                     printf("\n\t\t>> ALTERAR DESCRIÇÃO DA DISCIPLINA <<\n\n");
@@ -1057,7 +1075,7 @@ void areaLogada()
                     break;
                 case 9:
                     imprimirDecoracao();
-                    printf("\n\t\t\t>> ALTERAR NOTAS DOS ESTUDANTES <<\n\n");
+                    printf("\n\t\t>> ALTERAR NOTAS DOS ESTUDANTES <<\n\n");
                     imprimirDecoracao();
                     printf("\n# SELECIONE A DISCIPLINA E O ESTUDANTE QUE DESEJA ALTERAR AS NOTAS\n");
                     operarNotas(selecionarUsuario(3), selecionarDisciplina(1), 1, 1);
@@ -1069,19 +1087,12 @@ void areaLogada()
                         {
                         case 10:
                             imprimirDecoracao();
-                            printf("\n\t\t\t>> ALTERAR DADOS ESTUDANTES <<\n\n");
-                            imprimirDecoracao();
-                            //### listarEstudantes();
-                            //### alterarDadosEstudante(idEstudante);
-                            break;
-                        case 11:
-                            imprimirDecoracao();
                             printf("\n\t\t\t>> MATRICULAR ESTUDANTE <<\n\n");
                             imprimirDecoracao();
                             printf("\n# SELECIONE A DISCIPLINA E O ESTUDANTE QUE DESEJA MATRICULAR\n");
                             matricularEstudanteDisciplina(selecionarUsuario(3), selecionarDisciplina(1));
                             break;
-                        case 12:
+                        case 11:
                             imprimirDecoracao();
                             printf("\n\t\t>> DEFINIR PROFESSOR PARA DISCIPLINA <<\n\n");
                             imprimirDecoracao();
@@ -1306,9 +1317,8 @@ void editarDadosUsuario()
             sprintf(u.linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
             atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, u.linhaAtualizadaUsuario);
             //Atualizar a string da linha que está no arquivo agora
-            sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
-            return;
-        case 8:
+            strcpy(u.linhaUsuario, u.linhaAtualizadaUsuario);
+            // sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
             return;
         default:
             printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");

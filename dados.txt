@@ -23,3 +23,6 @@
 40 | lorem | .bQ5mwj1BQampGER | $6$rounds=20000$.bQ5mwj1BQampGER$S0WajEtB6VS3j4wsjszL4fGy2RdvyZXnGAHq4dhT9t9QtGdv0RiS5vauh5Lsc3UUHHyC889Ec6ISTB.nRwv0k. | G | G | G@G.C | 2
 41 | ultisss | 5br7JwN/UuPV9qcK | $6$rounds=20000$5br7JwN/UuPV9qcK$tr0o/LizqyuP2Zy4ErkFWwN1yY4TmiXeacwVsDX9hMP8Aju8bLvYEcQOK5ztdHxgo4QuexQnWZ.8CfK2LqpC1. | ULTIM | TES | TEST@S..C | 1
 42 | testedelogin | mV.rHXKB9WvAUL2D | $6$rounds=20000$mV.rHXKB9WvAUL2D$mozXJFcxppRzOVKq/uDagmO8jDa332uAOcZcooyCjdboXzJEIEX4vZ1Sj7mqR9kKzGVfhgMvj64l7fVGY5m/S/ | EDICAODONOME | EDICAOSOBRENOME | EDICAO@EMAIL.COM | 2
+43 | marcos.silva | wgrQvYT.D7M8HrSe | $6$rounds=20000$wgrQvYT.D7M8HrSe$1eHiXePfCRBLPlff0QLqL78zzT6oP3.f7D/8D0dPM20.4MEA2FcvoEPwH7OZRq8zpSp6NOS0mhhkjWXjkg56V0 | MARCOS | SILVA | MARCIO.SILVEIRA@TESTE.COM | 3
+44 | mauricio.santos | P3VUn5L2/kQur22t | $6$rounds=20000$P3VUn5L2/kQur22t$gGWtY/aXV.QJ5vTnJpKdZrTEShBSLJBTVj/xacc7lNmBC0Cc.mvlmnCjhnAQzrcPJMxZuwysKq6zEThB27uWV0 | MAURICIO | SANTOS | SANTOS.MAURICIO@GMAIL.COM | 2
+45 | wagner123 | GdOpJ/kVt.mrVMhP | $6$rounds=20000$GdOpJ/kVt.mrVMhP$.AXgSfxWWv0ALYEHBdCUeF.d5lWHP7OReusQvESaWEYgI/tkPZ2gg6jcWhyQ6hkUeaib5fRAvlrj2QzfvnM0h1 | WAGNER | SPID | SPID@YAHOO.COM | 1
