@@ -64,39 +64,38 @@ struct Usuario u;    //Declaração da estrutura do usuário
 struct Disciplina d; //Declaração da estrutura da disciplina
 struct Nota n;       //Declaração da estrutura das notas
 
-// ### - Ajustar descrição das funções inserindo descrição dos parâmetros e retornos
-// ### - Fazer validações nas entradas de dados com while (scanf(...) != X)
-
 /*Declaração das funções*/
 
 int pegarProximoId(char *arquivo);
-void cadastrarUsuario();
+int selecionarUsuario(short int idPapelProcurado);
+int selecionarDisciplina(short int idCurso);
 short int autenticar(short int ehLogin);
-void mostrarPolitica();
-char *alternarCapitalLetras(char *string, int flag);
 short int validarStringPadrao(char *string);
 short int validarStringEmail(char *string);
 short int validarIdentificador(char *identificador);
 short int validarSenha(char *senha);
+short int excluirDados();
+short int inserirDadosPadrao(char *arquivo);
+short int testarArquivo(char *nomeArquivo);
+short int validarNota(char *nota);
+char *alternarCapitalLetras(char *string, int flag);
+char *descreverNomePapel(short int idPapel);
+void cadastrarUsuario();
+void mostrarPolitica();
 void gerarSalt();
 void criptografarSenha();
 void limparEstruturaUsuario();
 void areaLogada();
 void verDadosUsuario(int idUsuario);
-short int excluirDados();
 void imprimirDecoracao();
-short int testarArquivo(char *nomeArquivo);
 void editarDadosUsuario();
 void coletarDados(short int nome, short int sobrenome, short int email, short int identificador, short int senha, short int papel);
 void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtualizada);
-short int inserirDadosPadrao(char *arquivo);
-int selecionarUsuario(short int idPapelProcurado);
-char *descreverNomePapel(short int idPapel);
-int selecionarDisciplina(short int idCurso);
 void pausarPrograma();
 void operarDisciplina(int idDisciplina, short int verDescricao, short int alterarDescricao, short int alterarProfessor);
 void matricularEstudanteDisciplina(int idEstudante, int idDisciplina);
 void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short int alterarNotas);
+void finalizarPrograma();
 
 /**OK
  * Estrutura para organização dos dados do usuário
@@ -110,7 +109,7 @@ struct Usuario
     char identificador[MAX_IDENTIFICADOR]; //Guarda o identificador/login do usuário
     char salt[SALT_SIZE + 1];              //Guarda o salt aleatório gerado
     char senha[MAX_SENHA];                 //Guarda a senha do usuário
-    char *senhaCriptografada;              //Precisa ser ponteiro para receber o retorno da função crypt
+    char *senhaCriptografada;              //Ponteiro para guardar o valor da senha criptografada, precisa ser ponteiro para receber o retorno da função crypt
     short int papel;                       //Guarda id do papel do usuário no sistema
     char linhaUsuario[MAX];                //Essa string é utilizada para encontrar a linha do usuário no arquivo
 };
@@ -150,7 +149,7 @@ int main()
     if (testarArquivo(arquivoUsuarios) || testarArquivo(arquivoNotas) || testarArquivo(arquivoDisciplina) || testarArquivo(arquivoCurso))
     {
         printf("\n# ERRO FATAL - um arquivo de dados essencial não pode ser aberto, o programa não pode ser iniciado.\n");
-        return 0;
+        finalizarPrograma();
     }
 
     //Se o arquivo do Curso ou da Disciplina estiver vazio vai inserir os dados default para trabalhar
@@ -158,20 +157,18 @@ int main()
     {
         if (inserirDadosPadrao(arquivoCurso) || inserirDadosPadrao(arquivoDisciplina))
             printf("\n# ERRO FATAL - Não foi possível inserir os dados padrão no arquivo do curso/disciplina, sem eles não é possível iniciar o programa.");
-        return 0;
+        finalizarPrograma();
     }
 
     imprimirDecoracao();
     printf("\n\t\t>> PROGRAMA INICIADO COM SUCESSO <<\n");
-    char entrada = '0'; //Recebe um número que o usuário digitar para escolher a opção do menu
-    int operacao = 0;   //
+    int operacao = 0; //Recebe um número que o usuário digitar para escolher a opção do menu
 
     //Loop do menu de opções
     do
     {
         pausarPrograma();
-        //Limpar a variável para evitar lixo de memória nas repetições
-        operacao = '\0';
+        operacao = '\0'; //Limpar a variável para evitar lixo de memória nas repetições
 
         system("cls || clear");
         imprimirDecoracao();
@@ -224,7 +221,7 @@ int main()
             mostrarPolitica();
             break;
         default:
-            printf("\n# FALHA - Você digitou uma opção inválida (%d), tente novamente!\n", operacao);
+            printf("\n# FALHA [OPÇÃO INVÁLIDA] - Você digitou uma opção inválida (%d), tente novamente!\n", operacao);
             break;
         }
     } while (1);
@@ -293,7 +290,7 @@ int pegarProximoId(char *arquivo)
 
     int id = 0;
 
-    //Abrindo arquivo
+    //Abre o arquivo
     ponteiroArquivos = fopen(arquivo, "r");
 
     while (!feof(ponteiroArquivos))
@@ -618,7 +615,7 @@ short int validarStringPadrao(char *string)
         //Usando a função isalpha da biblioteca ctype.h, é possível verificar se o caractere é alfabético
         if (!isalpha(string[i]))
         {
-            printf("\n# FALHA [CARACTERE INVÁLIDO]: por favor insira somente caracteres alfabéticos nesse campo, sem espaços ou pontuações.\n# '%c' não é alfabético!\n", string[i]);
+            printf("\n# FALHA [CARACTERE INVÁLIDO]: insira somente caracteres alfabéticos nesse campo, sem espaços ou pontuações.\n# '%c' não é alfabético!\n", string[i]);
             return 0;
         }
     }
@@ -645,28 +642,27 @@ short int validarStringEmail(char *string)
     // sscanf lê a entrada a partir da string no primeiro parâmetro, atribuindo para as variáveis. Retorna o número de campos convertidos e atribuídos com êxito.
     if (sscanf(string, "%[^@ \t\n]@%[^. \t\n].%3[^ \t\n]", usuario, site, dominio) != 3)
     {
-        printf("\n# FALHA [E-MAIL INVÁLIDO]: por favor verifique o e-mail digitado.\n");
+        printf("\n# FALHA [E-MAIL INVÁLIDO]: verifique o e-mail digitado.\n");
         return 0;
     }
     //Se chegou aqui é porque a string é válida
     return 1;
 }
 
-/**
+/**OK
  * Função para verificar se o identificador cumpre com a política
+ * @param identificador é a string do identificador que deseja verificar se é válida
  * @return 1 em caso de identificador válido; 0 caso inválido.
  */
 short int validarIdentificador(char *identificador)
 {
-    char identificadorMaiusculo[MAX_IDENTIFICADOR];   //Variável que irá guardar o identificador convertido para maiúsculo, para simplificar a comparação com o nome e sobrenome
-    char identificadorArquivo[MAX_IDENTIFICADOR];     //Variável para guardar o identificador recebido do arquivo
-    strcpy(identificadorMaiusculo, identificador);    //Copiando o identificador para transformar em maiúsculo
-    alternarCapitalLetras(identificadorMaiusculo, 1); //Tornando maiúsculo
+    char identificadorMaiusculo[MAX_IDENTIFICADOR]; //Variável que irá guardar o identificador convertido para maiúsculo, para simplificar a comparação com o nome e sobrenome
+    char identificadorArquivo[MAX_IDENTIFICADOR];   //Variável para guardar o identificador recebido do arquivo
 
     //Verifica tamanho do identificador
     if (strlen(identificador) < 5 || strlen(identificador) > 15)
     {
-        printf("\n# IDENTIFICADOR INVÁLIDO - Não contém tamanho permitido (mínimo 5 e máximo 15)\n");
+        printf("\n# FALHA [IDENTIFICADOR INVÁLIDO] - Não contém tamanho permitido (mínimo 5 e máximo 15)\n");
         return 0;
     }
 
@@ -675,28 +671,28 @@ short int validarIdentificador(char *identificador)
     {
         if (!isalnum(identificador[i]) && identificador[i] != '.')
         {
-            printf("\n# IDENTIFICADOR INVÁLIDO - Contém caracteres não permitidos\n# O identificador pode conter somente caracteres alfanuméricos e ponto final.\n");
+            printf("\n# FALHA [IDENTIFICADOR INVÁLIDO] - Contém caracteres não permitidos\n# O identificador pode conter somente caracteres alfanuméricos e ponto final.\n");
             return 0;
         }
     }
 
+    strcpy(identificadorMaiusculo, identificador);    //Copiando o identificador para transformar em maiúsculo
+    alternarCapitalLetras(identificadorMaiusculo, 1); //Tornando maiúsculo
     //Se o identificador for igual ao nome ou sobrenome, é inválido.
     if (!strcmp(identificadorMaiusculo, u.nome) || !strcmp(identificadorMaiusculo, u.sobrenome))
     {
-        printf("\n# IDENTIFICADOR INVÁLIDO - Identificador não pode ser seu nome ou sobrenome!\n");
+        printf("\n# FALHA [IDENTIFICADOR INVÁLIDO] - Identificador não pode ser seu nome ou sobrenome!\n");
         return 0;
     }
 
     /*Verifica se o identificador já foi utilizado*/
-
     //Validação para caso o arquivo não possa ser aberto.
     if (testarArquivo(arquivoUsuarios))
         return 0;
 
-    //Abrir o arquivo com parâmetro "r" de read, apenas lê
-    ponteiroArquivos = fopen(arquivoUsuarios, "r");
+    ponteiroArquivos = fopen(arquivoUsuarios, "r"); //Abrir o arquivo com parâmetro "r" de read, apenas lê
 
-    //Passa pelas linhas do arquivo
+    //Passa pelas linhas do arquivo verificando os identificadores já inseridos
     while (!feof(ponteiroArquivos))
     {
         //Lê linha por linha colocando os valores no formato, nas variáveis
@@ -706,32 +702,31 @@ short int validarIdentificador(char *identificador)
         if (!strcmp(identificadorArquivo, identificadorMaiusculo))
         {
             //Se entrar aqui o identificador já foi utilizado
-            printf("\n# IDENTIFICADOR INVÁLIDO - Já está sendo utilizado!\n");
+            printf("\n# FALHA [IDENTIFICADOR INVÁLIDO] - Já está sendo utilizado!\n");
             fclose(ponteiroArquivos);
             return 0;
         }
     }
-    //Fecha o arquivo
-    fclose(ponteiroArquivos);
-
+    fclose(ponteiroArquivos); //Fecha o arquivo
     //Se chegou até aqui, passou pelas validações, retorna 1 - true
     return 1;
 }
 
-/** 
+/**OK
  * Função para verificar se a senha cumpre com a política de senhas
- * @return valor 1 em caso de senha válida e 0 caso inválida
+ * @param senha é a string da senha que quer validar
+ * @return valor 1 em caso de senha válida; 0 caso inválida
  */
 short int validarSenha(char *senha)
 {
     //Contadores dos tipos de caracteres que a senha possui
-    int contminúsculas = 0, contmaiúsculas = 0, contNumeros = 0, contEspeciais = 0;
+    int contminusculas = 0, contmaiusculas = 0, contNumeros = 0, contEspeciais = 0;
     char confirmacaoSenha[MAX_SENHA]; //Variável que receberá a confirmação da senha
 
     //Verifica tamanho da senha
     if (strlen(senha) < 8 || strlen(senha) > 30)
     {
-        printf("\n# SENHA INVÁLIDA - Não contém tamanho permitido (mínimo 8 e máximo 30)\n");
+        printf("\n# FALHA [SENHA INVÁLIDA] - Não contém tamanho permitido (mínimo 8 e máximo 30)\n");
         return 0;
     }
 
@@ -739,17 +734,17 @@ short int validarSenha(char *senha)
     for (int i = 0; i < strlen(senha); i++)
     {
         /*Sequencia de condições para verificar cada caractere da senha*/
-        //Usando a função islower da biblioteca ctype.h, é possível verificar se o caractere é alfabético e minusculo
+        //Usando a função islower da biblioteca ctype.h, é possível verificar se o caractere é alfabético e minúsculo
         if (islower(senha[i]))
         {
-            contminúsculas++;
+            contminusculas++;
         }
         //Usando a função isupper da biblioteca ctype.h, é possível verificar se o caractere é alfabético e maiúsculo
         else if (isupper(senha[i]))
         {
-            contmaiúsculas++;
+            contmaiusculas++;
         }
-        //Usando a função isdigit da biblioteca ctype.h, é possível verificar se o caractere é um digito
+        //Usando a função isdigit da biblioteca ctype.h, é possível verificar se o caractere é um dígito
         else if (isdigit(senha[i]))
         {
             contNumeros++;
@@ -757,14 +752,14 @@ short int validarSenha(char *senha)
             //Verifica se a senha contém +2 números ordenados em sequência (ascendente ou descendente)
             if (((senha[i] - '0') + 1 == senha[i + 1] - '0' && (senha[i] - '0') + 2 == senha[i + 2] - '0') || ((senha[i] - '1') == senha[i + 1] - '0' && (senha[i] - '2') == senha[i + 2] - '0'))
             {
-                printf("\n# SENHA INVÁLIDA - | %c | faz parte de números ordenados em sequência\n", senha[i]);
+                printf("\n# FALHA [SENHA INVÁLIDA] - | %c | faz parte de números ordenados em sequência\n", senha[i]);
                 return 0;
             }
 
             //Verifica se a senha contém +2 números repetidos em sequência
             if (senha[i] == senha[i + 1] && senha[i] == senha[i + 2])
             {
-                printf("\n# SENHA INVÁLIDA - | %c | faz parte de números repetidos em sequência\n", senha[i]);
+                printf("\n# FALHA [SENHA INVÁLIDA] - | %c | faz parte de números repetidos em sequência\n", senha[i]);
                 return 0;
             }
         }
@@ -775,7 +770,7 @@ short int validarSenha(char *senha)
         }
         else
         {
-            printf("\n\n# SENHA INVÁLIDA - Sua senha contém caracteres que nao são nem alfanuméricos nem especiais ou espaço.");
+            printf("\n\n# FALHA [SENHA INVÁLIDA] - Sua senha contém caracteres que nao são nem alfanuméricos nem especiais ou espaço.");
             printf("\n# Verifique a digitação e tente novamente.\n# Caracteres permitidos:");
             printf("\n#\tEspeciais: ! \" # $ %% & ' ( ) * + , - . / : ; < = > ? @ [ \\ ] ^ _ ` { | } ~ [ESPAÇO]");
             printf("\n#\tNuméricos: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9");
@@ -787,25 +782,25 @@ short int validarSenha(char *senha)
     //Valida a quantidade de caracteres especiais
     if (contEspeciais < 2)
     {
-        printf("\n# SENHA INVÁLIDA - Não contém caracteres especiais suficientes\n");
+        printf("\n# FALHA [SENHA INVÁLIDA] - Não contém caracteres especiais suficientes\n");
         return 0;
     }
     //Verifica se contém números e letras
-    if ((contminúsculas + contmaiúsculas) == 0 || contNumeros == 0)
+    if ((contminusculas + contmaiusculas) == 0 || contNumeros == 0)
     {
-        printf("\n# SENHA INVÁLIDA - Não contém letras e números\n");
+        printf("\n# FALHA [SENHA INVÁLIDA] - Não contém letras e números\n");
         return 0;
     }
     //Verifica se contém minúsculas
-    if (contminúsculas == 0)
+    if (contminusculas == 0)
     {
-        printf("\n# SENHA INVÁLIDA - Não contém qualquer letra minúscula\n");
+        printf("\n# FALHA [SENHA INVÁLIDA] - Não contém qualquer letra minúscula\n");
         return 0;
     }
     //Verifica se contém maiúsculas
-    if (contmaiúsculas == 0)
+    if (contmaiusculas == 0)
     {
-        printf("\n# SENHA INVÁLIDA - Não contém qualquer letra maiúscula\n");
+        printf("\n# FALHA [SENHA INVÁLIDA] - Não contém qualquer letra maiúscula\n");
         return 0;
     }
     //Solicita a confirmação da senha
@@ -813,7 +808,7 @@ short int validarSenha(char *senha)
     //Compara as 2 senhas informadas, se forem diferentes vai retornar != 0, entrando na condição
     if (strcmp(confirmacaoSenha, senha))
     {
-        printf("\n# FALHA - As senhas não coincidem.\n");
+        printf("\n# FALHA [SENHAS INCOMPATÍVEIS] - As senhas não coincidem\n");
         return 0;
     }
 
@@ -821,26 +816,26 @@ short int validarSenha(char *senha)
     return 1;
 }
 
-/**
+/**OK
  * Gera o valor de salt e insere ele na variável salt do usuário atual
  */
 void gerarSalt()
 {
-
     char *buffer;                                                                                //Ponteiro onde serão armazenados os caracteres gerados aleatoriamente
     char listaCaracteres[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789./"; //Lista de caracteres para serem escolhidos para o salt
     int retorno;                                                                                 //Para guardar a quantidade de caracteres gerados na função getrandom
 
-    //Reservar espaço do tamanho do salt na memória
+    //Reservar espaço do tamanho do salt + 1 (para o caractere NULL) na memória
     buffer = malloc(SALT_SIZE + 1);
 
-    //Flag 0 para que a função utilize /dev/urandom - fonte de aleatoriedade do próprio Kernel.
+    //Flag 0 na função getrandom(), para que a função utilize /dev/urandom - fonte de aleatoriedade do próprio Kernel
     retorno = getrandom(buffer, SALT_SIZE, 0);
 
     //Verifica se a função retornou todo os bytes necessários
     if (retorno != SALT_SIZE)
     {
-        perror("\n# FALHA - Erro ao obter caracteres para criação do salt\n");
+        perror("\n# ERRO - A geração de caracteres para criação do salt não foi bem sucedida\n");
+        return;
     }
 
     //Loop para montagem da string do salt, escolhendo os caracteres
@@ -851,13 +846,12 @@ void gerarSalt()
         Evitando assim que surjam caracteres que não podem ser interpretados pela codificação do SO ou caracteres não permitidos
         para uso na função crypt, posteriormente.*/
         u.salt[i] = listaCaracteres[((unsigned char)buffer[i]) % (strlen(listaCaracteres))];
-        // printf("\n§ > %d : '%c'", i, u.salt[i]);
     }
     //Adiciona o caractere NULL na última posição da string salt
     u.salt[SALT_SIZE] = '\0';
 }
 
-/**
+/**OK
  * Criptografa a senha do usuário e insere o valor da senha criptografada na variável senhaCriptografada do usuário atual
  */
 void criptografarSenha()
@@ -871,11 +865,11 @@ void criptografarSenha()
     //Incluindo o valor do salt gerado na variável (idSaltSenha)
     sprintf(idSaltSenha, PARAMETRO_CRYPT, u.salt);
 
-    //Envia o retorno do crypt para senhaCriptografada
+    //Criptografa e envia o retorno do crypt para senhaCriptografada
     u.senhaCriptografada = crypt(u.senha, idSaltSenha);
 }
 
-/**
+/**OK
  * Zera os dados da estrutura do usuário para reutilização
  */
 void limparEstruturaUsuario()
@@ -890,40 +884,23 @@ void limparEstruturaUsuario()
     memset(&u.linhaUsuario[0], 0, sizeof(u.linhaUsuario));
     u.papel = '0';
     u.codigo = '0';
-    // printf("\n# A ESTRUTURA DO USUÁRIO FOI LIMPA.\n");
-}
-
-/**
- * Zera os dados da estrutura da disciplina para reutilização
- */
-void limparEstruturaDisciplina()
-{
-    memset(&d.nome[0], 0, sizeof(d.nome));
-    memset(&d.descricao[0], 0, sizeof(d.descricao));
-    d.idCurso = '0';
-    d.idProfessor = '0';
-    d.codigo = '0';
 }
 
 /**
  * Opções para o usuário autenticado
  */
-// ### - Criar loops para que o usuário possa repetir algumas operações sem ter que acessar a opção do menu cada vez.
 void areaLogada()
 {
-    char entrada[] = "00"; //Recebe a entrada que o usuário digitar
-    int op = 0;            //Recebe o valor da entrada convertido para int para usar no switch
-
+    int operador = 0; //Recebe o valor da entrada do usuário para escolher a operação
     imprimirDecoracao();
-
-    printf("\n\t\t\tBEM-VINDO %s %s!\n", descreverNomePapel(u.papel), u.nome);
+    printf("\n\t\tBEM-VINDO %s %s!\n", descreverNomePapel(u.papel), u.nome);
 
     //Menu de opções
     do
     {
         pausarPrograma();
         //Limpar a variável para evitar lixo de memória nas repetições
-        memset(&entrada[0], 0, sizeof(entrada));
+        operador = '\0';
 
         system("cls || clear");
         imprimirDecoracao();
@@ -952,7 +929,7 @@ void areaLogada()
             printf("\n[10] Matricular estudante");
             printf("\n[11] Definir professor em disciplina");
         }
-        //Coordenador e estudante tem acesso
+        //Somente se for estudante mostra essa opção como 7
         if (u.papel == 3)
         {
             printf("\n[7] Matricular-se em disciplina");
@@ -960,160 +937,237 @@ void areaLogada()
 
         imprimirDecoracao();
         printf("\n> Informe o número: ");
-        scanf("%[0-9]", entrada);
-
-        //Converte o char para int para que possa ser verificado no switch
-        op = atoi(entrada);
-
-        switch (op)
+        setbuf(stdin, NULL);
+        //Valida a entrada que o usuário digitou
+        while (scanf("%d", &operador) != 1)
         {
-        case 0:
-            if (!strcmp(entrada, "0"))
-            {
-                limparEstruturaUsuario();
-                system("cls || clear");
-                printf("\n# SISTEMA FINALIZADO.\n");
-                exit(0);
-            }
-            else //O usuário digitou um caractere não inteiro
-            {
-                printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
-                setbuf(stdin, NULL);
-                getchar();
-            }
+            printf("\n# FALHA - Ocorreu um erro na leitura do valor informado.\n> Tente novamente: ");
+            setbuf(stdin, NULL);
+        };
+
+        //Escolha da operação a ser realizada
+        switch (operador)
+        {
+        case 0: //Encerrar programa
+            system("cls || clear");
+            finalizarPrograma();
             break;
-        case 1:
-            printf("\n# LOGOUT - Você saiu.\n");
+        case 1: //Logout
+            system("clear || cls");
+            printf("\n# LOGOUT - Você saiu\n");
             return;
-        case 2:
+        case 2: //Excluir conta
+            system("clear || cls");
             imprimirDecoracao();
-            printf("\n\t\t\t>> EXCLUIR CONTA <<\n\n");
+            printf("\n\t\t\t>> EXCLUIR CONTA <<\n");
+            imprimirDecoracao();
+            //Se os dados foram deletados com sucesso
             if (excluirDados())
             {
-                limparEstruturaUsuario();
+                setbuf(stdin, NULL);
                 getchar();
                 return;
             }
             else
             {
                 printf("\n# OPERAÇÃO CANCELADA\n");
+                setbuf(stdin, NULL);
                 getchar();
             }
-
             break;
-        case 3:
+        case 3: //Ver dados do próprio usuário
+            system("clear || cls");
             imprimirDecoracao();
-            printf("\n\t\t\t>> MEUS DADOS <<\n\n");
+            printf("\n\t\t\t>> MEUS DADOS <<\n");
             verDadosUsuario(u.codigo);
             imprimirDecoracao();
             break;
-        case 4:
+        case 4: //Editar dados do usuário
             imprimirDecoracao();
-            printf("\n\t\t\t>> EDITAR MEUS DADOS <<\n\n");
+            printf("\n\t\t\t>> EDITAR MEUS DADOS <<\n");
+            printf("\n# INFO - Visualize seus dados antes de editar...\n");
+            verDadosUsuario(u.codigo);
             imprimirDecoracao();
             editarDadosUsuario(u.codigo);
             break;
-        case 5:
-            imprimirDecoracao();
-            printf("\n\t\t>> DESCRIÇÃO DA DISCIPLINA <<\n\n");
-            imprimirDecoracao();
-            operarDisciplina(selecionarDisciplina(1), 1, 0, 0);
-            break;
-        case 6:
-            imprimirDecoracao();
-            printf("\n\t\t\t>> NOTAS <<\n\n");
-            imprimirDecoracao();
-            //Se o usuário logado for estudante, mostra apenas as notas dele
-            if (u.papel == 3)
+        case 5: //Ver descrição da disciplina
+            do
             {
-                printf("\n# SELECIONE A DISCIPLINA QUE DESEJA VER SUAS NOTAS\n");
-                operarNotas(u.codigo, selecionarDisciplina(1), 1, 0);
-            }
-            else //Se for outro papel, o usuário seleciona de qual estudante quer ver as notas
-            {
-                printf("\n# SELECIONE A DISCIPLINA E O ESTUDANTE QUE DESEJA VER AS NOTAS\n");
-                operarNotas(selecionarUsuario(3), selecionarDisciplina(1), 1, 0);
-            }
+                system("clear || cls");
+                imprimirDecoracao();
+                printf("\n\t\t>> DESCRIÇÃO DA DISCIPLINA <<\n");
+                imprimirDecoracao();
+                operarDisciplina(selecionarDisciplina(1), 1, 0, 0);
+                printf("\n# <?> - Repetir a operação? [s/n]\n>");
+                setbuf(stdin, NULL);
+                if (getchar() != 's')
+                    break; //Usuário deseja voltar ao menu principal, sai do loop
+                setbuf(stdin, NULL);
+            } while (1);
             break;
-        case 7:
+        case 6: //Ver notas do estudante
+            do
+            {
+                system("clear || cls");
+                imprimirDecoracao();
+                printf("\n\t\t\t>> NOTAS <<\n\n");
+                imprimirDecoracao();
+                //Se o usuário logado for estudante, mostra apenas as notas dele
+                if (u.papel == 3)
+                {
+                    printf("\n# INFO - Selecione a disciplina para ver suas notas...\n");
+                    operarNotas(u.codigo, selecionarDisciplina(1), 1, 0);
+                }
+                else //Se for outro papel, o usuário seleciona de qual estudante quer ver as notas
+                {
+                    printf("\n# INFO - Selecione a disciplina e o estudante para ver as notas...\n");
+                    operarNotas(selecionarUsuario(3), selecionarDisciplina(1), 1, 0);
+                }
+                printf("\n# <?> - Repetir a operação? [s/n]\n>");
+                setbuf(stdin, NULL);
+                if (getchar() != 's')
+                    break; //Usuário deseja voltar ao menu principal, sai do loop
+                setbuf(stdin, NULL);
+            } while (1);
+            break;
+        case 7: //Ver dados dos estudantes se o usuário não for estudante e matricular em disciplina se for estudante
             imprimirDecoracao();
             if (u.papel != 3)
             {
-                printf("\n\t\t\t>> VER DADOS DE ESTUDANTES <<\n\n");
-                imprimirDecoracao();
-                printf("\n# SELECIONE O ESTUDANTE QUE DESEJA VER OS DADOS\n");
-                verDadosUsuario(selecionarUsuario(3));
+                do
+                {
+                    system("clear || cls");
+                    imprimirDecoracao();
+                    printf("\n\t\t>> VER DADOS DE ESTUDANTES <<\n");
+                    imprimirDecoracao();
+                    printf("\n# INFO - Selecione o estudante para ver os dados...\n");
+                    verDadosUsuario(selecionarUsuario(3));
+                    printf("\n# <?> - Repetir a operação? [s/n]\n>");
+                    setbuf(stdin, NULL);
+                    if (getchar() != 's')
+                        break; //Usuário deseja voltar ao menu principal, sai do loop
+                    setbuf(stdin, NULL);
+                } while (1);
             }
             else
             {
-                printf("\n\t\t>> MATRICULAR EM DISCIPLINA <<\n\n");
-                imprimirDecoracao();
-                printf("\n# SELECIONE A DISCIPLINA PARA MATRICULAR-SE\n");
-                matricularEstudanteDisciplina(u.codigo, selecionarDisciplina(1));
+                do
+                {
+                    system("clear || cls");
+                    imprimirDecoracao();
+                    printf("\n\t\t>> MATRICULAR EM DISCIPLINA <<\n\n");
+                    imprimirDecoracao();
+                    printf("\n# INFO - Selecione a disciplina para matricular-se...\n");
+                    matricularEstudanteDisciplina(u.codigo, selecionarDisciplina(1));
+                    printf("\n# <?> - Repetir a operação? [s/n]\n>");
+                    setbuf(stdin, NULL);
+                    if (getchar() != 's')
+                        break; //Usuário deseja voltar ao menu principal, sai do loop
+                    setbuf(stdin, NULL);
+                } while (1);
             }
             break;
-        default:
+        default: //Se o usuário escolheu outra opção...
+            //Se for coordenador ou professor, em qualquer um dos 2 faz essas operações, isso evita que o estudante acesse essas opções mesmo não aparecendo no seu menu
             if (u.papel == 1 || u.papel == 2)
             {
-                switch (op)
+                //Escolhas do coordenador e professor
+                switch (operador)
                 {
-                case 8:
-                    imprimirDecoracao();
-                    printf("\n\t\t>> ALTERAR DESCRIÇÃO DA DISCIPLINA <<\n\n");
-                    imprimirDecoracao();
-                    printf("\n# SELECIONE A DISCIPLINA QUE DESEJA ALTERAR A DESCRIÇÃO\n");
-                    operarDisciplina(selecionarDisciplina(1), 1, 1, 0);
+                case 8: //Alterar descrição da disciplina
+                    do
+                    {
+                        system("clear || cls");
+                        imprimirDecoracao();
+                        printf("\n\t\t>> ALTERAR DESCRIÇÃO DA DISCIPLINA <<\n");
+                        imprimirDecoracao();
+                        printf("\n# INFO - Selecione a disciplina para alterar a descrição...\n");
+                        operarDisciplina(selecionarDisciplina(1), 1, 1, 0);
+                        printf("\n# <?> - Repetir a operação? [s/n]\n>");
+                        setbuf(stdin, NULL);
+                        if (getchar() != 's')
+                            break; //Usuário deseja voltar ao menu principal, sai do loop
+                        setbuf(stdin, NULL);
+                    } while (1);
                     break;
                 case 9:
-                    imprimirDecoracao();
-                    printf("\n\t\t>> ALTERAR NOTAS DOS ESTUDANTES <<\n\n");
-                    imprimirDecoracao();
-                    printf("\n# SELECIONE A DISCIPLINA E O ESTUDANTE QUE DESEJA ALTERAR AS NOTAS\n");
-                    operarNotas(selecionarUsuario(3), selecionarDisciplina(1), 1, 1);
+                    do
+                    {
+                        system("clear || cls");
+                        imprimirDecoracao();
+                        printf("\n\t\t>> ALTERAR NOTAS DOS ESTUDANTES <<\n");
+                        imprimirDecoracao();
+                        printf("\n# INFO - Selecione  disciplina e o estudante para alterar as notas...\n");
+                        operarNotas(selecionarUsuario(3), selecionarDisciplina(1), 1, 1);
+                        printf("\n# <?> - Alterar notas de outros estudantes? [s/n]\n>");
+                        setbuf(stdin, NULL);
+                        if (getchar() != 's')
+                            break; //Usuário deseja voltar ao menu principal, sai do loop
+                        setbuf(stdin, NULL);
+                    } while (1);
                     break;
                 default:
                     if (u.papel == 1)
                     {
-                        switch (op)
+                        //Escolhas exclusivas do coordenador
+                        switch (operador)
                         {
                         case 10:
-                            imprimirDecoracao();
-                            printf("\n\t\t\t>> MATRICULAR ESTUDANTE <<\n\n");
-                            imprimirDecoracao();
-                            printf("\n# SELECIONE A DISCIPLINA E O ESTUDANTE QUE DESEJA MATRICULAR\n");
-                            matricularEstudanteDisciplina(selecionarUsuario(3), selecionarDisciplina(1));
+                            do
+                            {
+                                system("clear || cls");
+                                imprimirDecoracao();
+                                printf("\n\t\t\t>> MATRICULAR ESTUDANTE <<\n");
+                                imprimirDecoracao();
+                                printf("\n# INFO - Selecione a disciplina e o estudante para matricular...\n");
+                                matricularEstudanteDisciplina(selecionarUsuario(3), selecionarDisciplina(1));
+                                printf("\n# <?> - Repetir a operação? [s/n]\n>");
+                                setbuf(stdin, NULL);
+                                if (getchar() != 's')
+                                    break; //Usuário deseja voltar ao menu principal, sai do loop
+                                setbuf(stdin, NULL);
+                            } while (1);
                             break;
                         case 11:
-                            imprimirDecoracao();
-                            printf("\n\t\t>> DEFINIR PROFESSOR PARA DISCIPLINA <<\n\n");
-                            imprimirDecoracao();
-                            printf("\n# SELECIONE UMA DISCIPLINA E UM PROFESSOR PARA ATRIBUIR\n");
-                            operarDisciplina(selecionarDisciplina(1), 0, 0, 1);
+                            do
+                            {
+                                system("clear || cls");
+                                imprimirDecoracao();
+                                printf("\n\t\t>> DEFINIR PROFESSOR PARA DISCIPLINA <<\n");
+                                imprimirDecoracao();
+                                printf("\n# INFO - Selecione a disciplina e o professor para definir...\n");
+                                operarDisciplina(selecionarDisciplina(1), 0, 0, 1);
+                                printf("\n# <?> - Repetir a operação? [s/n]\n>");
+                                setbuf(stdin, NULL);
+                                if (getchar() != 's')
+                                    break; //Usuário deseja voltar ao menu principal, sai do loop
+                                setbuf(stdin, NULL);
+                            } while (1);
                             break;
-                        default:
-                            printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+                        default: //Coordenador digitou uma opção inválida
+                            printf("\n# FALHA [OPÇÃO INVÁLIDA] - Você digitou uma opção inválida, tente novamente!\n");
                             break;
                         }
                     }
-                    else
+                    else //Professor digitou uma opção inválida
                     {
-                        printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+                        printf("\n# FALHA [OPÇÃO INVÁLIDA] - Você digitou uma opção inválida, tente novamente!\n");
                     }
                     break;
                 }
             }
-            else
+            else //Estudante digitou uma opção inválida
             {
-                printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+                printf("\n# FALHA [OPÇÃO INVÁLIDA] - Você digitou uma opção inválida, tente novamente!\n");
             }
             break;
         }
     } while (1);
 }
 
-/**
+/**OK
  * Imprime os dados do usuário
- * @param id do usuário que se deseja exibir os dados
+ * @param idUsuario ID do usuário que se deseja exibir os dados
  */
 void verDadosUsuario(int idUsuario)
 {
@@ -1123,18 +1177,19 @@ void verDadosUsuario(int idUsuario)
         if (testarArquivo(arquivoUsuarios))
             return;
 
+        //Variáveis para guardar os dados recebidos do arquivo
         char nome[MAX_DADOS], sobrenome[MAX_DADOS], email[MAX_DADOS], identificador[MAX_IDENTIFICADOR], salt[SALT_SIZE + 1], senhaCriptografada[120];
         int idPapel = 0, idLido = 0;
 
-        //Abrindo arquivo
-        ponteiroArquivos = fopen(arquivoUsuarios, "r");
+        ponteiroArquivos = fopen(arquivoUsuarios, "r"); //Abre o arquivo
 
+        //Loop que passa pelas linhas do arquivo coletando os dados dos usuários e quando encontra o ID do usuário passado como parâmetro, para de procurar
         while (!feof(ponteiroArquivos))
         {
-            //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
+            //Lê as linhas até o final do arquivo, atribuindo os dados nas variáveis
             fscanf(ponteiroArquivos, "%d | %s | %s | %s | %s | %s | %s | %d\n", &idLido, identificador, salt, senhaCriptografada, nome, sobrenome, email, &idPapel);
 
-            //Se encontrar a linha do ID do usuário procurado para o loop
+            //Se encontrar a linha do ID do usuário procurado, encerra o loop
             if (idLido == idUsuario)
             {
                 break;
@@ -1142,13 +1197,14 @@ void verDadosUsuario(int idUsuario)
         }
         fclose(ponteiroArquivos);
 
-        //Se sair do loop e o idLido por último não for o do usuário que foi passado como parâmetro, significa que não encontrou o usuário buscado.
+        //Se sair do loop e o idLido por último não for o do usuário que foi passado como parâmetro, significa que não encontrou o usuário buscado
         if (idLido != idUsuario)
         {
-            printf("\n# ERRO - Os dados do usuário selecionado não puderam ser localizados!");
+            printf("\n# ERRO - Os dados do usuário selecionado não puderam ser localizados");
             return;
         }
 
+        //Se chegar aqui exibe os dados que estão nas variáveis, que são referentes ao usuário procurado
         printf("\n¬ Código: %d", idUsuario);
         printf("\n¬ Nome Completo: %s %s", nome, sobrenome);
         printf("\n¬ E-mail: %s", email);
@@ -1157,7 +1213,7 @@ void verDadosUsuario(int idUsuario)
         printf("\n¬ Senha criptografada: %s", senhaCriptografada);
         printf("\n¬ Papel: %s\n", descreverNomePapel(idPapel));
     }
-    else
+    else //Se forem os dados do próprio usuário logado já estão salvos nas variáveis do programa
     {
         printf("\n¬ Código: %d", idUsuario);
         printf("\n¬ Nome Completo: %s %s", u.nome, u.sobrenome);
@@ -1169,20 +1225,21 @@ void verDadosUsuario(int idUsuario)
     }
 }
 
-/**
+/**OK
  * Excluir os dados do usuário do arquivo de dados
- * @return 1 se o cadastro foi deletado e 0 se foi cancelado pelo usuário ou por falha no arquivo
+ * @return 1 se o cadastro foi deletado; 0 se foi cancelado pelo usuário ou por falha no arquivo
  */
 short int excluirDados()
 {
-    printf("# AVISO - Tem certeza que deseja excluir seu cadastro?\n# Essa ação não pode ser desfeita! [s/n]\n>");
+    printf("\n# AVISO - Tem certeza que deseja excluir seu cadastro?\n# Essa ação não pode ser desfeita! [s/n]\n>");
     setbuf(stdin, NULL);
     if (getchar() != 's')
     {
+        //Usuário não confirmou a operação digitando 's', então encerra a função
         return 0;
     }
 
-    //Validação para caso os arquivos não possa ser acessados.
+    //Validação para caso os arquivos não possa ser acessados
     if (testarArquivo(arquivoUsuarios) || testarArquivo("transferindo.txt"))
         return 0;
 
@@ -1190,7 +1247,7 @@ short int excluirDados()
     FILE *saida = fopen("transferindo.txt", "w");   //Arquivo de saída
     char texto[MAX];                                //Uma string grande para armazenar as linhas lidas
 
-    //Loop pelas linhas do arquivo
+    //Loop pelas linhas do arquivo para salvar as linhas que não são do usuário em questão e não salvar a linha dele no novo arquivo gerado
     while (fgets(texto, MAX, ponteiroArquivos) != NULL)
     {
         //Se a linha sendo lida no arquivo for diferente da linha do usuário atual, ela será copiada para o arquivo de saída
@@ -1199,19 +1256,33 @@ short int excluirDados()
             fputs(texto, saida);
         }
     }
-    //Fechar arquivos
-    fclose(ponteiroArquivos);
-    fclose(saida);
-
-    //Excluir arquivo original, contendo a linha dos dados do usuário
-    remove(arquivoUsuarios);
+    //Fecha os arquivos
+    if (fclose(ponteiroArquivos) || fclose(saida))
+    {
+        system("cls || clear");
+        printf("\n# ERRO - Ocorreu um erro ao fechar um arquivo necessário, o programa foi abortado.\n");
+        finalizarPrograma();
+    }
+    //Deleta o arquivo com os dados antigos
+    if (remove(arquivoUsuarios))
+    {
+        system("cls || clear");
+        printf("\n# ERRO - Ocorreu um erro ao deletar um arquivo necessário, o programa foi abortado.\n");
+        finalizarPrograma();
+    }
     //Renomeia o arquivo onde foram passadas as linhas que não seriam excluidas para o nome do arquivo de dados de entrada
-    rename("transferindo.txt", arquivoUsuarios);
+    if (rename("transferindo.txt", arquivoUsuarios))
+    {
+        system("cls || clear");
+        printf("\n# ERRO - Ocorreu um erro ao renomear um arquivo necessário, o programa foi abortado.\n");
+        finalizarPrograma();
+    }
+    limparEstruturaUsuario();
     printf("\n# SUCESSO - Seu cadastro foi deletado.\n");
     return 1;
 }
 
-/**
+/**OK
  * Apenas imprime as linhas de separação
  */
 void imprimirDecoracao()
@@ -1220,10 +1291,10 @@ void imprimirDecoracao()
     printf("\n*********************************************************************************\n");
 }
 
-/**
+/**OK
  *  Verifica se o arquivo passado como parâmetro pode ser criado/utilizado
- *  @param *nomeArquivo: nome do arquivo que se deseja testar
- *  @return int 1 caso o arquivo não possa ser acessado e 0 caso contrário
+ *  @param nomeArquivo: nome do arquivo que se deseja testar
+ *  @return 1 caso o arquivo não possa ser acessado; 0 caso contrário
  */
 short int testarArquivo(char *nomeArquivo)
 {
@@ -1237,28 +1308,25 @@ short int testarArquivo(char *nomeArquivo)
     return 0;
 }
 
-/**
- * Disponibiliza um menu para o usuário escolher que dados do cadastro ele quer editar e salva 
- * no arquivo de dados quando o usuário escolher a opção de Salvar no menu.
+/**OK
+ * Disponibiliza um menu para o usuário escolher que dados do cadastro ele quer editar, e salva no arquivo de dados
  */
 void editarDadosUsuario()
 {
-    //Validação para caso os arquivos não possa ser acessados.
+    //Validação para caso os arquivos não possa ser acessados
     if (testarArquivo(arquivoUsuarios))
         return;
 
-    char entrada = '0';               //Recebe a entrada que o usuário digitar
     char linhaAtualizadaUsuario[MAX]; //Essa string serve para guardar os dados atualizados do usuário, e posteriormente ser passada na função
-    int op = 0;                       //Recebe o valor da entrada convertido para int para usar no switch
+    int operacao = 0;                 //Recebe a entrada que o usuário digitar
 
     //Menu de opções
     do
     {
         pausarPrograma();
-        //Limpar a variável para evitar lixo de memória nas repetições
-        entrada = '\0';
-
+        operacao = '\0'; //Limpar a variável para evitar lixo de memória nas repetições
         system("cls || clear");
+
         imprimirDecoracao();
         printf("\n\t\t\tEDITAR MEUS DADOS\n");
         printf("\n> Informe um número para escolher a informação que deseja editar e pressione ENTER:");
@@ -1269,63 +1337,87 @@ void editarDadosUsuario()
         printf("\n[5] Senha");
         printf("\n[6] Papel");
         printf("\n_______________________________");
-        printf("\n[7] SAIR E GUARDAR ALTERAÇÕES");
+        printf("\n[7] SAIR");
         printf("\n[0] ENCERRAR PROGRAMA");
         imprimirDecoracao();
         printf("\n> Informe o número: ");
-        scanf("%[0-9]", &entrada);
 
-        //Converte o char para int para que possa ser verificado no switch
-        op = entrada - '0';
-
-        switch (op)
+        setbuf(stdin, NULL);
+        //Valida a entrada que o usuário digitou
+        while (scanf("%d", &operacao) != 1)
         {
-        case 0:
-            limparEstruturaUsuario();
+            printf("\n# FALHA - Ocorreu um erro na leitura do valor informado.\n> Tente novamente: ");
+            setbuf(stdin, NULL);
+        };
+
+        //Escolhe a operação que o usuário digitou
+        switch (operacao)
+        {
+        case 0: //Encerra o programa
             system("cls || clear");
-            printf("\n# SISTEMA FINALIZADO.\n");
-            exit(0);
-        case 1:
+            finalizarPrograma();
+        case 1: //Coleta o nome
             coletarDados(1, 0, 0, 0, 0, 0);
-            break;
-        case 2:
-            coletarDados(0, 1, 0, 0, 0, 0);
-            break;
-        case 3:
-            coletarDados(0, 0, 1, 0, 0, 0);
-            break;
-        case 4:
-            coletarDados(0, 0, 0, 1, 0, 0);
-            break;
-        case 5:
-            if (autenticar(0))
-                coletarDados(0, 0, 0, 0, 1, 0);
-            break;
-        case 6:
-            coletarDados(0, 0, 0, 0, 0, 1);
-            break;
-        case 7:
             //Preparar linha com dados do usuário para inserir no arquivo
             sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
             atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
             //Atualizar a string da linha que está no arquivo agora
             strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
-            // sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
+            break;
+        case 2: //Coleta o sobrenome
+            coletarDados(0, 1, 0, 0, 0, 0);
+            sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
+            atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
+            strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
+            break;
+        case 3: //Coleta o e-mail
+            coletarDados(0, 0, 1, 0, 0, 0);
+            sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
+            atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
+            strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
+            break;
+        case 4: //Solicita autenticação e coleta o identificador
+            if (autenticar(0))
+            {
+                coletarDados(0, 0, 0, 1, 0, 0);
+                sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
+                atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
+                strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
+            }
+            break;
+        case 5: //Solicita autenticação e coleta a nova senha
+            if (autenticar(0))
+            {
+                coletarDados(0, 0, 0, 0, 1, 0);
+                sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
+                atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
+                strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
+            }
+            break;
+        case 6: //Coleta o papel
+            coletarDados(0, 0, 0, 0, 0, 1);
+            sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
+            atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
+            strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
+            break;
+        case 7: //Sair da função
             return;
         default:
-            printf("\n# OPÇÃO INVÁLIDA\n# Você digitou uma opção inválida, tente novamente!\n");
+            printf("\n# FALHA [OPÇÃO INVÁLIDA] - Você digitou uma opção inválida, tente novamente!\n");
             break;
         }
     } while (1);
 }
 
 /**
- * Faz a atualização do arquivo, procurando pela linha obsoleta e trocando pela linha atualizada.
+ * Faz a atualização do arquivo, salvando as linhas que não são a linha obsoleta e quando a encontra, salva a linha atualizada no lugar dela
+ * @param arquivo é o arquivo que se deseja utilizar para substituir a linha
+ * @param linhaObsoleta é a linha que está com dados desatualizados
+ * @param linhaAtualizada é a linha com dados novos que irão no lugar da linha obsoleta
  */
-// ### - Fazer validação correta se a função conseguiu realizar todas as operações
 void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtualizada)
 {
-    //Validação antes de acessar os arquivos.
+    //Validação antes de acessar os arquivos
     if (testarArquivo(arquivo) || testarArquivo("transferindo.txt"))
         return;
 
@@ -1333,37 +1425,48 @@ void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtuali
     FILE *saida = fopen("transferindo.txt", "w"); //Arquivo de saída
     char texto[MAX];                              //Uma string grande para armazenar as linhas lidas
 
-    //Loop pelas linhas do arquivo
+    //Loop pelas linhas do arquivo, procurando a linha obsoleta
     while (fgets(texto, MAX, entrada) != NULL)
     {
-        //Se a linha sendo lida no arquivo for diferente da linha do usuário atual, ela será apenas copiada para o arquivo de saída
+        //Se a linha sendo lida no arquivo for diferente da linha obsoleta, ela será apenas copiada para o arquivo de saída
         if (strcmp(linhaObsoleta, texto))
         {
             fputs(texto, saida);
-            // printf("\n§ Linha é diferente copiada: '%s'\n§ Linha procurada: '%s'", texto, linhaObsoleta);
         }
         else
         {
             fputs(linhaAtualizada, saida);
-            // printf("\n§ Linha é igual substituida: '%s' > '%s'", linhaObsoleta, linhaAtualizada);
         }
     }
-    //Fechar arquivos
-    fclose(entrada);
-    fclose(saida);
 
-    //Excluir arquivo original, contendo a linha com os dados obsoletos
-    remove(arquivo);
-    //Renomeia o arquivo onde foram passadas as linhas, inclusive a linha atualizada, para o nome do arquivo de dados de entrada
-    rename("transferindo.txt", arquivo);
-    printf("\n# SUCESSO - Os dados foram atualizados.\n");
+    //Fecha os arquivos
+    if (fclose(entrada) || fclose(saida))
+    {
+        system("cls || clear");
+        printf("\n# ERRO - Ocorreu um erro ao fechar um arquivo necessário, o programa foi abortado.\n");
+        finalizarPrograma();
+    }
+    //Deleta o arquivo com os dados antigos
+    if (remove(arquivo))
+    {
+        system("cls || clear");
+        printf("\n# ERRO - Ocorreu um erro ao deletar um arquivo necessário, o programa foi abortado.\n");
+        finalizarPrograma();
+    }
+    //Renomeia o arquivo onde foram passadas as linhas que não seriam excluidas para o nome do arquivo de dados de entrada
+    if (rename("transferindo.txt", arquivo))
+    {
+        system("cls || clear");
+        printf("\n# ERRO - Ocorreu um erro ao renomear um arquivo necessário, o programa foi abortado.\n");
+        finalizarPrograma();
+    }
+    printf("\n# SUCESSO - Os dados foram atualizados!\n");
 }
 
-/**
- * Lista todos os usuários de um grupo específico passado no parâmetro inteiro 
- * [1-Coordenadores, 2-Professores ou 3-Estudantes] 
- * e dá opção de escolha ao usuário.
- * @return id do usuário escolhido dentre os listados ou 0 em caso de falha
+/**OK
+ * Lista todos os usuários de um grupo específico passado no parâmetro inteiro e dá opção de escolha ao usuário
+ * @param idPapelProcurado 1-Coordenadores, 2-Professores ou 3-Estudantes
+ * @return ID do usuário escolhido dentre os listados; 0 em caso de falha
  */
 int selecionarUsuario(short int idPapelProcurado)
 {
@@ -1371,21 +1474,27 @@ int selecionarUsuario(short int idPapelProcurado)
     if (testarArquivo(arquivoUsuarios))
         return 0;
 
-    int listaIds[MAX], idSelecionado = 0, idPapelLido = 0, idUsuarioLido = 0, contador = 0;
-    char nomeUsuarioLido[MAX_DADOS], sobrenomeUsuarioLido[MAX_DADOS];
+    int listaIds[MAX];                                                //Mantém uma lista dos IDs lidos para validar se o usuário está escolhendo um ID listado
+    int idSelecionado = 0;                                            //Guarda o ID que o usuário escolheu
+    int idPapelLido = 0, idUsuarioLido = 0;                           //Guardam ID do usuário e papel lidos
+    int contador = 0;                                                 //Variável de controle de índices do vetor listaIds
+    char nomeUsuarioLido[MAX_DADOS], sobrenomeUsuarioLido[MAX_DADOS]; //Guardam o nome e sobrenome lidos do usuário
 
-    //Abrindo arquivo
-    ponteiroArquivos = fopen(arquivoUsuarios, "r");
+    ponteiroArquivos = fopen(arquivoUsuarios, "r"); //Abre o arquivo
 
-    printf("\n\t\t*** LISTANDO USUÁRIOS COM PAPEL: %s ***\n", descreverNomePapel(idPapelProcurado));
+    printf("\n\t********* LISTANDO USUÁRIOS COM PAPEL: %s *********\n", descreverNomePapel(idPapelProcurado));
+
+    /*Loop para passar pelas linhas do arquivo verificando os papéis dos usuários e quando o papel é compatível com o que 
+    foi passado no parâmetro, ele exibe e guarda no vetor o valor do ID desse usuário*/
     while (!feof(ponteiroArquivos))
     {
+        //Limpa variáveis para evitar possíveis erros na releitura
         idUsuarioLido = 0;
         idPapelLido = 0;
 
         //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
         fscanf(ponteiroArquivos, "%d | %s | %s | %s | %s | %s | %s | %d\n", &idUsuarioLido, temp, temp, temp, nomeUsuarioLido, sobrenomeUsuarioLido, temp, &idPapelLido);
-
+        //Se o papel lido for igual ao que se está procurando, exibe o usuário na lista e salva seu ID no vetor
         if (idPapelLido == idPapelProcurado)
         {
             listaIds[contador] = idUsuarioLido;
@@ -1393,21 +1502,34 @@ int selecionarUsuario(short int idPapelProcurado)
             contador++;
         }
     }
-    fclose(ponteiroArquivos);
+    fclose(ponteiroArquivos); //Fecha o arquivo
 
-    // Encerra a função se não haviam usuários cadastrados com o papel escolhido
+    //Encerra a função se não haviam usuários cadastrados com o papel escolhido
     if (contador == 0)
     {
-        printf("\n# INFO - Não há usuários cadastrados com esse papel\n");
+        printf("\n# FALHA - Não há usuários cadastrados com esse papel\n");
         return 0;
     }
 
     //Solicita que o usuário selecione um ID e valida se esse ID está entre os listados (permitidos)
     do
     {
-        printf("\n\n> Selecione o número que corresponde ao usuário desejado: ");
+        printf("\n\n> Selecione o número que corresponde ao usuário desejado ou 0 para encerrar o programa: ");
         setbuf(stdin, NULL);
-        scanf("%d", &idSelecionado);
+        //Valida a entrada do usuário
+        while (scanf("%d", &idSelecionado) != 1)
+        {
+            printf("\n# FALHA - Ocorreu um erro na leitura. Digite novamente:\n> ");
+            setbuf(stdin, NULL);
+        };
+
+        //Usuário cancelou
+        if (idSelecionado == 0)
+        {
+            finalizarPrograma();
+        }
+
+        //Passa pelos IDs do vetor e quando o ID que o usuário escolheu for encontrado retorna esse ID
         for (int i = 0; i < contador; i++)
         {
             if (idSelecionado == listaIds[i])
@@ -1415,15 +1537,15 @@ int selecionarUsuario(short int idPapelProcurado)
                 return idSelecionado;
             }
         }
-        printf("\n# FALHA - Esse ID não está na listagem, tente novamente informando um ID que está na lista mostrada.");
+        //Se ainda não retornou o ID é porque o usuário selecionou um ID que não estava na lista
+        printf("\n# FALHA - Esse ID não está na listagem, tente novamente informando um ID que está na lista mostrada");
     } while (1);
-
-    return idSelecionado;
 }
 
-/** Retorna o nome do papel com base no id passado como parâmetro 
- * [1-Coordenador, 2-Professor ou 3-Estudante]
- * @return nome do papel
+/**OK
+ * Retorna o nome do papel com base no ID passado como parâmetro
+ * @param idPapel é o ID do papel a ser descrito: 1-Coordenador, 2-Professor ou 3-Estudante
+ * @return o nome descrito do papel
  */
 char *descreverNomePapel(short int idPapel)
 {
@@ -1435,15 +1557,13 @@ char *descreverNomePapel(short int idPapel)
     {
         return "Professor";
     }
-
     return "Estudante";
 }
 
-/**
- * Lista todos as disciplinas de um curso específico passado no parâmetro inteiro 
- * e solicita para o usuário escolher a desejada.
+/**OK
+ * Lista todos as disciplinas de um curso específico passado no parâmetro e solicita para o usuário escolher a desejada
  * @param idCurso o ID do curso para listar as disciplinas
- * @return id da disciplina escolhido dentre as listadas ou 0 em caso de falha
+ * @return ID da disciplina escolhida dentre as listadas; 0 em caso de falha
  */
 int selecionarDisciplina(short int idCurso)
 {
@@ -1451,21 +1571,24 @@ int selecionarDisciplina(short int idCurso)
     if (testarArquivo(arquivoDisciplina))
         return 0;
 
-    int listaIds[MAX], idSelecionado = 0, idCursoLido = 0, idDisciplinaLida = 0, contador = 0;
-    char nomeDisciplinaLida[MAX_DADOS];
+    int listaIds[MAX];                         //Mantém uma lista dos IDs lidos para validar se o usuário está escolhendo um ID listado
+    int idSelecionado = 0;                     //Guarda o ID que o usuário escolheu
+    int idCursoLido = 0, idDisciplinaLida = 0; //Guardam ID do curso e disciplina lidos
+    int contador = 0;                          //Variável de controle de índices do vetor listaIds
+    char nomeDisciplinaLida[MAX_DADOS];        //Guarda o nome da disciplina lida
 
-    //Abrindo arquivo
-    ponteiroArquivos = fopen(arquivoDisciplina, "r");
+    ponteiroArquivos = fopen(arquivoDisciplina, "r"); //Abre o arquivo
 
-    printf("\n\t\t*** LISTANDO DISCIPLINAS DO CURSO ***\n");
+    printf("\n\t********* LISTANDO DISCIPLINAS DO CURSO *********\n");
     while (!feof(ponteiroArquivos))
     {
+        //Limpa variáveis para evitar possíveis erros na releitura
         idDisciplinaLida = 0;
         idCursoLido = 0;
 
-        //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
+        //Lê as linhas até o final do arquivo, atribuindo o ID da linha na variável ID com formato inteiro
         fscanf(ponteiroArquivos, "%d | %[^|] | %d | %[^\n]", &idDisciplinaLida, nomeDisciplinaLida, &idCursoLido, temp);
-
+        //Se o curso lido for igual ao que se está procurando, exibe a disciplina na lista e salva seu ID no vetor
         if (idCursoLido == idCurso)
         {
             listaIds[contador] = idDisciplinaLida;
@@ -1473,21 +1596,34 @@ int selecionarDisciplina(short int idCurso)
             contador++;
         }
     }
-    fclose(ponteiroArquivos);
+    fclose(ponteiroArquivos); //Fecha arquivo
 
-    // Encerra a função se não haviam disciplinas cadastrados no curso escolhido
+    //Encerra a função se não haviam disciplinas cadastrados no curso escolhido
     if (contador == 0)
     {
-        printf("\n# INFO - Não há disciplinas cadastrados nesse curso\n");
+        printf("\n# FALHA - Não há disciplinas cadastrados nesse curso\n");
         return 0;
     }
 
     //Solicita que o usuário selecione um ID e valida se esse ID está entre os listados (permitidos)
     do
     {
-        printf("\n\n> Selecione o número que corresponde à disciplina desejada: ");
+        printf("\n\n> Selecione o número que corresponde à disciplina desejada ou 0 para encerrar o programa: ");
         setbuf(stdin, NULL);
-        scanf("%d", &idSelecionado);
+        //Valida a entrada do usuário
+        while (scanf("%d", &idSelecionado) != 1)
+        {
+            printf("\n# FALHA - Ocorreu um erro na leitura. Digite novamente:\n> ");
+            setbuf(stdin, NULL);
+        };
+
+        //Usuário cancelou
+        if (idSelecionado == 0)
+        {
+            finalizarPrograma();
+        }
+
+        //Passa pelos IDs do vetor e quando o ID que o usuário escolheu for encontrado retorna esse ID
         for (int i = 0; i < contador; i++)
         {
             if (idSelecionado == listaIds[i])
@@ -1495,14 +1631,13 @@ int selecionarDisciplina(short int idCurso)
                 return idSelecionado;
             }
         }
+        //Se ainda não retornou o ID é porque o usuário selecionou um ID que não estava na lista
         printf("\n# FALHA - Esse ID não está na listagem, tente novamente informando um ID que está na lista mostrada.");
     } while (1);
-
-    return idSelecionado;
 }
 
-/**
- * Para o programa para que o usuário possa ler mensagens antes de limpar a tela
+/**OK
+ * Pausa no programa para que o usuário possa ler mensagens antes de limpar a tela
  */
 void pausarPrograma()
 {
@@ -1515,9 +1650,9 @@ void pausarPrograma()
     setbuf(stdin, NULL);
 }
 
-/**
+/**OK
  * Essa função é capaz de exibir a descrição da disciplina, alterar a descrição da disciplina e 
- * alterar o professor da disciplina.
+ * alterar o professor da disciplina
  * @param idDisciplina ID da disciplina que deseja realizar uma das operações
  * @param verDescrição flag booleana para visualizar a descrição da disciplina
  * @param alterarDescricao flag booleana para alterar a descrição da disciplina
@@ -1529,14 +1664,15 @@ void operarDisciplina(int idDisciplina, short int verDescricao, short int altera
     if (testarArquivo(arquivoDisciplina))
         return;
 
-    //Abrindo arquivo
-    ponteiroArquivos = fopen(arquivoDisciplina, "r");
+    ponteiroArquivos = fopen(arquivoDisciplina, "r"); //Abre o arquivo
 
+    //Loop que faz passar pelas linhas do arquivo
     while (!feof(ponteiroArquivos))
     {
-        //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
+        //Lê as linhas até o final do arquivo, atribuindo às variáveis, os dados conforme a formatação
         fscanf(ponteiroArquivos, "%d | %[^|] | %d | %d | %[^\n]", &d.codigo, d.nome, &d.idCurso, &d.idProfessor, d.descricao);
 
+        //Se o código da disciplina é igual ao ID da disciplina que o usuário deseja operar
         if (d.codigo == idDisciplina)
         {
             //Fechar o arquivo já que não é mais necessário
@@ -1548,8 +1684,8 @@ void operarDisciplina(int idDisciplina, short int verDescricao, short int altera
             if (alterarDescricao || alterarProfessor)
             {
                 char linhaAntiga[MAX * 5], linhaAtualizada[MAX * 5];
+                //Insere os dados atuais que serão substituidos na variável linhaAntiga
                 sprintf(linhaAntiga, "%d | %s| %d | %d | %s\n", d.codigo, d.nome, d.idCurso, d.idProfessor, d.descricao);
-                // printf("\n§ Linha Antiga: '%s'", linhaAntiga);
 
                 if (alterarDescricao)
                 {
@@ -1557,7 +1693,7 @@ void operarDisciplina(int idDisciplina, short int verDescricao, short int altera
                     do
                     {
                         memset(&d.descricao[0], 0, sizeof(d.descricao));
-                        printf("\n> Insira a nova descrição da disciplina [Pressione ENTER para finalizar]: ");
+                        printf("\n> Insira a nova descrição da disciplina e pressione ENTER: ");
                         setbuf(stdin, NULL);
                         scanf("%[^\n]", d.descricao);
 
@@ -1577,58 +1713,58 @@ void operarDisciplina(int idDisciplina, short int verDescricao, short int altera
                 {
                     d.idProfessor = selecionarUsuario(2);
                 }
-
+                //Insere os dados atuais que serão substituidos na variável linhaAtualizada
                 sprintf(linhaAtualizada, "%d | %s| %d | %d | %s\n", d.codigo, d.nome, d.idCurso, d.idProfessor, d.descricao);
-                // printf("\n§ Linha Atualizada: '%s'", linhaAtualizada);
-
                 atualizarLinhaArquivo(arquivoDisciplina, linhaAntiga, linhaAtualizada);
             }
+            //Finaliza a função já que já encontrou a disciplina e fez as operações necessárias
             return;
         }
     }
-    fclose(ponteiroArquivos);
-
-    // Se chegar aqui não encontrou a disciplina selecionada
-    printf("\n# ERRO - A disciplina solicitada não foi localizada\n");
+    fclose(ponteiroArquivos); //Fecha arquivo
+    //Se chegar aqui não encontrou a disciplina selecionada
+    printf("\n# FALHA - A disciplina solicitada não foi localizada\n");
 }
 
-/**
- * Matricula o estudante com ID passado no primeiro parâmetro na disciplina passada com ID no segundo parêmetro.
- * Criando o registro do usuário no arquivo de notas
+/**OK
+ * Matricula o estudante com ID passado no primeiro parâmetro na disciplina passada com ID no segundo parâmetro, 
+ * criando o registro do usuário no arquivo de notas
+ * @param idEstudante é o ID do estudante que deseja matricular
+ * @param idDisciplina é o ID da disciplina onde deseja matricular
  */
 void matricularEstudanteDisciplina(int idEstudante, int idDisciplina)
 {
-    //Validação para caso o arquivo não possa ser aberto.
+    //Validação do arquivo
     if (testarArquivo(arquivoNotas))
         return;
 
-    //Verificar se o estudante já está matriculado
-    ponteiroArquivos = fopen(arquivoNotas, "r");
-    //Passa pelas linhas verificando se encontra o id do estudante e disciplina, que serão matriculados.
+    /*Verificar se o estudante já está matriculado nessa disciplina*/
+    ponteiroArquivos = fopen(arquivoNotas, "r"); //Abre arquivo
+
+    //Loop que passa pelas linhas verificando se encontra o id do estudante e disciplina, que serão matriculados
     while (!feof(ponteiroArquivos))
     {
-        //Lê as linhas até o final do arquivo, os dados para as variáveis da estrutura
+        //Lê as linhas até o final do arquivo, enviando os dados para as variáveis da estrutura
         fscanf(ponteiroArquivos, "%d | %f | %f | %d | %d", &n.codigo, &n.nota1, &n.nota2, &n.idEstudante, &n.idDisciplina);
-
+        //Se a linha lida possui id do estudante igual o ID do estudante que será matriculado e o ID da disciplina também
         if (n.idEstudante == idEstudante && n.idDisciplina == idDisciplina)
         {
-            //Fechar o arquivo já que não é mais necessário
-            fclose(ponteiroArquivos);
+            //Estudante já está matriculado na disciplina
+            fclose(ponteiroArquivos); //Fechar o arquivo já que não é mais necessário
             printf("\n# FALHA - Esse estudante já está matriculado nessa disciplina!\n");
             return;
         }
     }
-    fclose(ponteiroArquivos);
+    fclose(ponteiroArquivos); //Fecha arquivo
 
     /*Inicia o processo de matrícula do aluno*/
-    char linhaNota[MAX]; //Variável que guarda a linha com os dados para inserir no arquivo de notas
-    int codigo = pegarProximoId(arquivoNotas);
+    char linhaNota[MAX];                       //Variável que guarda a linha com os dados para inserir no arquivo de notas
+    int codigo = pegarProximoId(arquivoNotas); //Gera o código da linha para o arquivo de notas
 
-    //Abrir o arquivo com parâmetro "a" de append, não sobrescreve as informações, apenas adiciona.
-    ponteiroArquivos = fopen(arquivoNotas, "a");
+    ponteiroArquivos = fopen(arquivoNotas, "a"); //Abre o arquivo
 
-    //Passar dados cadastrados para a variável que será inserida no arquivo
-    sprintf(linhaNota, "%d | %.2f | %.2f | %d | %d\n", codigo, -1.0, -1.0, idEstudante, idDisciplina);
+    //Passar dados default para a variável que será inserida no arquivo
+    sprintf(linhaNota, "%d | %.2f | %.2f | %d | %d\n", codigo, -1.00, -1.00, idEstudante, idDisciplina);
 
     //Insere a string com todos os dados no arquivo
     if (fputs(linhaNota, ponteiroArquivos) == EOF)
@@ -1643,8 +1779,8 @@ void matricularEstudanteDisciplina(int idEstudante, int idDisciplina)
     fclose(ponteiroArquivos); //Fecha o arquivo
 }
 
-/**
- * Essa função pode exibir e/ou alterar as notas de determinado estudante.
+/**OK
+ * Essa função pode exibir e/ou alterar as notas de determinado estudante
  * @param idEstudante ID do estudante que deseja realizar uma das operações
  * @param idDisciplina ID da disciplina que deseja realizar uma das operações
  * @param verNotas flag booleana para exibir as notas do estudante selecionado
@@ -1656,29 +1792,33 @@ void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short in
     if (testarArquivo(arquivoNotas))
         return;
 
-    ponteiroArquivos = fopen(arquivoNotas, "r"); //Abrindo arquivo
+    ponteiroArquivos = fopen(arquivoNotas, "r"); //Abre o arquivo
 
     while (!feof(ponteiroArquivos))
     {
-        //Lê as linhas até o final do arquivo, atribuindo o os valores da linha nas variáveis
+        //Lê as linhas até o final do arquivo, atribuindo o os valores da linha, nas respectivas variáveis
         fscanf(ponteiroArquivos, "%d | %f | %f | %d | %d", &n.codigo, &n.nota1, &n.nota2, &n.idEstudante, &n.idDisciplina);
 
+        //Se o ID do estudante da linha é igual ao ID do estudante que foi passado no parâmetro e o ID da disciplina igual ao ID da disciplina no parâmetro
         if (n.idEstudante == idEstudante && n.idDisciplina == idDisciplina)
         {
-            //Fechar o arquivo já que não é mais necessário
-            fclose(ponteiroArquivos);
+            fclose(ponteiroArquivos); //Fechar o arquivo já que não é mais necessário
 
+            //Se a flag ver notas está setada, vai exibir as notas do estudante solicitado
             if (verNotas)
             {
+                //Se a nota for negativa, significa que o valor default (-1) está inserido
                 if (n.nota1 < 0)
                 {
+                    //Exibe apenas um traço na nota
                     printf("\n¬ Nota 1: -");
                 }
-                else
+                else //Senão mostra o valor da nota
                 {
                     printf("\n¬ Nota 1: %.2f", n.nota1);
                 }
 
+                //Mesma validação de nota negativa para nota 2
                 if (n.nota2 < 0)
                 {
                     printf("\n¬ Nota 2: -\n");
@@ -1689,67 +1829,129 @@ void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short in
                 }
             }
 
+            //Se a flag alterar notas está setada, vai alterar as notas do estudante solicitado
             if (alterarNotas)
             {
-                char linhaAntiga[MAX], linhaAtualizada[MAX];
-                int op = 0;
+                char linhaAntiga[MAX], linhaAtualizada[MAX]; //Guardam a linha que será substituída e a linha que irá no lugar desta
+                char notaDigitada[MAX];
+                int operador = 0; //Recebe o valor da escolha da nota que o usuário quer alterar
+                //Passando dados atuais para a linha que será substituída posteriormente
                 sprintf(linhaAntiga, "%d | %.2f | %.2f | %d | %d\n", n.codigo, n.nota1, n.nota2, n.idEstudante, n.idDisciplina);
-                // printf("\n§ Linha Antiga: '%s'", linhaAntiga);
 
-                printf("\n> Escolha qual nota quer alterar: ");
-                printf("\n[1] Nota 1");
-                printf("\n[2] Nota 2\n> ");
-                //Loop para colher as notas e validar
                 do
                 {
-                    setbuf(stdin, NULL);
-                    scanf("%d", &op);
+                    printf("\n> Escolha qual nota quer alterar: ");
+                    printf("\n[1] Nota 1");
+                    printf("\n[2] Nota 2");
+                    printf("\n> Digite o número: ");
+                    //Loop para colher as notas e validar
+                    do
+                    {
+                        setbuf(stdin, NULL);
+                        //Valida a entrada que o usuário digitou
+                        while (scanf("%d", &operador) != 1)
+                        {
+                            printf("\n# FALHA - Ocorreu um erro na leitura do valor informado.\n> Tente novamente: ");
+                            setbuf(stdin, NULL);
+                        };
 
-                    if (op == 1)
-                    {
-                        do
+                        if (operador == 1)
                         {
-                            // ### - Fazer validação para quando o usuário digitar ,
-                            printf("\n> Insira a nota 1...\n[A nota deve ser entre 0 e 10, números decimais devem ser escritos com . (ponto final) ao invés de , (vírgula)]\n[Caso informe valores inválidos o sistema solicitará a nota novamente]\n> ");
-                            setbuf(stdin, NULL);
-                            while (scanf("%f", &n.nota1) != 1)
+                            //Loop para validar nota digitada
+                            do
                             {
-                                printf("\n# FALHA - Ocorreu um erro na leitura. Digite novamente:\n> ");
+                                printf("\n> Insira a nota 1 (00.00): ");
                                 setbuf(stdin, NULL);
-                            };
-                        } while (n.nota1 < 0 || n.nota1 > 10);
-                        break;
-                    }
-                    else if (op == 2)
-                    {
-                        do
+                                scanf("%[^\n]", notaDigitada);
+                            } while (!validarNota(notaDigitada));
+                            n.nota1 = atof(notaDigitada);
+                            break;
+                        }
+                        else if (operador == 2)
                         {
-                            printf("\n> Insira a nota 2...\n[A nota deve ser entre 0 e 10, números decimais devem ser escritos com . ao invés de ,]\n[Caso informe valores inválidos o sistema solicitará a nota novamente]\n> ");
-                            setbuf(stdin, NULL);
-                            while (scanf("%f", &n.nota2) != 1)
+                            //Loop para validar nota digitada
+                            do
                             {
-                                printf("\n# FALHA - Ocorreu um erro na leitura. Digite novamente:\n> ");
+                                printf("\n> Insira a nota 2 (00.00): ");
                                 setbuf(stdin, NULL);
-                            };
-                        } while (n.nota2 < 0 || n.nota2 > 10);
-                        break;
-                    }
-                    else
-                    {
-                        printf("\n# FALHA - Digite o número correspondente à nota que quer alterar da lista exibida!\n> ");
-                    }
+                                scanf("%[^\n]", notaDigitada);
+                            } while (!validarNota(notaDigitada));
+                            n.nota2 = atof(notaDigitada);
+                            break;
+                        }
+                        else
+                        {
+                            printf("\n# FALHA - Digite o número correspondente à nota que quer alterar da lista exibida!\n> ");
+                        }
+                    } while (1);
+                    printf("\n# <?> - Deseja atualizar as notas do estudante novamente? [s/n]\n>");
+                    setbuf(stdin, NULL);
+                    if (getchar() != 's')
+                        break; //Usuário deseja parar de alterar as notas desse estudante, sai do loop
+                    setbuf(stdin, NULL);
                 } while (1);
 
                 sprintf(linhaAtualizada, "%d | %.2f | %.2f | %d | %d\n", n.codigo, n.nota1, n.nota2, n.idEstudante, n.idDisciplina);
 
                 atualizarLinhaArquivo(arquivoNotas, linhaAntiga, linhaAtualizada);
             }
-
             return;
         }
     }
-    fclose(ponteiroArquivos);
+    fclose(ponteiroArquivos); //Fecha arquivo
 
-    // Se chegar aqui não encontrou a linha com o estudante e disciplina solicitados
+    //Se chegar aqui não encontrou a linha com o estudante e disciplina solicitados
     printf("\n# ERRO - Estudante não está matriculado na disciplina solicitada.\n");
+}
+
+/**OK
+ * Realiza a validação da nota passada no parâmetro, verificando se contém vírgula, seu tamanho, formato e intervalo
+ * @param nota é a nota a ser verificada em formato string
+ * @return 1 caso a nota passe pelos testes; 0 caso seja inválida
+ */
+short int validarNota(char *nota)
+{
+    //Variáveis para guardar as informações digitadas separadas
+    char inteiros[MAX], decimais[MAX];
+
+    //Valida se o usuário digitou ',' ao invés de '.', necessário validar isso pois o primeiro número antes da vírgula será considerado válido apenas se o usuário digitar números com ,
+    if (sscanf(nota, "%[^, \t\n],%[^\n]", inteiros, decimais) == 2)
+    {
+        printf("\n# FALHA [NOTA INVÁLIDA]: para nota decimal deve ser utilizado '.' (ponto) ao invés de ',' (vírgula), no formato '00.00'\n");
+        return 0;
+    }
+
+    //Valida tamanho da string
+    if (strlen(nota) > 5 || strlen(nota) < 1)
+    {
+        printf("\n# FALHA [QUANTIDADE DE CARACTERES]: verifique a nota digitada, deve conter entre 1 e 5 caracteres, você inseriu %d caracteres!\n", strlen(nota));
+        return 0;
+    }
+
+    //Valida se a nota quando convertida para float retorna 0 (falha na conversão) e o usuário não digitou um 0 propositalmente
+    if (!atof(nota) && strcmp(nota, "0") && strcmp(nota, "00") && strcmp(nota, "00.0") && strcmp(nota, "00.00"))
+    {
+        printf("\n# FALHA [NOTA INVÁLIDA]: verifique a nota digitada, deve estar no formato '00.00'\n");
+        return 0;
+    }
+
+    //Valida intervalo da nota
+    if (atof(nota) < 0 || atof(nota) > 10)
+    {
+        printf("\n# FALHA [NOTA INVÁLIDA]: verifique a nota digitada, deve estar entre 0 e 10\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * Limpa a estrutura com os dados do usuário e encerra o programa
+ */
+void finalizarPrograma()
+{
+    setbuf(stdin, NULL);
+    limparEstruturaUsuario();
+    printf("\n# SISTEMA FINALIZADO.\n");
+    exit(0);
 }

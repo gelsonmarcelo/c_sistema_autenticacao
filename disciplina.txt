@@ -1,1 +1,1 @@
-1 | Segurança da Informação | 1 | 44 | Essa descrição foi alterada pelo coordenador
+1 | Segurança da Informação | 1 | 9 | teste de alteração de descrição da disciplina
