@@ -45,7 +45,7 @@
     - Disciplina: ver descrição da disciplina; alterar descrição da disciplina;
     - Notas: ver notas; alterar notas.
 - Estudante:
-    - Dados dos Estudantes: ver dados*;
+    - Dados dos Estudantes: ver dados*, alterar dados*;
     - Disciplina: ver descrição da disciplina; matricular estudante*;
     - Notas: ver notas*
     *Somente próprias informações
@@ -81,7 +81,8 @@ short int validarNota(char *nota);
 char *alternarCapitalLetras(char *string, int flag);
 char *descreverNomePapel(short int idPapel);
 void cadastrarUsuario();
-void mostrarPolitica();
+void mostrarPoliticaSenhas();
+void mostrarPoliticaAcesso();
 void gerarSalt();
 void criptografarSenha();
 void limparEstruturaUsuario();
@@ -96,8 +97,9 @@ void operarDisciplina(int idDisciplina, short int verDescricao, short int altera
 void matricularEstudanteDisciplina(int idEstudante, int idDisciplina);
 void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short int alterarNotas);
 void finalizarPrograma();
+void fecharArquivo();
 
-/**OK
+/**
  * Estrutura para organização dos dados do usuário
  */
 struct Usuario
@@ -114,7 +116,7 @@ struct Usuario
     char linhaUsuario[MAX];                //Essa string é utilizada para encontrar a linha do usuário no arquivo
 };
 
-/**OK
+/**
  * Estrutura para organização dos dados da disciplina
  */
 struct Disciplina
@@ -126,7 +128,7 @@ struct Disciplina
     char descricao[MAX * 4]; //Guarda a descrição da disciplina
 };
 
-/**OK
+/**
  * Estrutura para organização dos dados da nota
  */
 struct Nota
@@ -138,7 +140,7 @@ struct Nota
     int idDisciplina; //Salva o ID da disciplina que as notas pertencem
 };
 
-/**OK
+/**
  * Função principal
  */
 int main()
@@ -156,8 +158,10 @@ int main()
     if (pegarProximoId(arquivoCurso) == 1 || pegarProximoId(arquivoDisciplina) == 1)
     {
         if (inserirDadosPadrao(arquivoCurso) || inserirDadosPadrao(arquivoDisciplina))
+        {
             printf("\n# ERRO FATAL - Não foi possível inserir os dados padrão no arquivo do curso/disciplina, sem eles não é possível iniciar o programa.");
-        finalizarPrograma();
+            finalizarPrograma();
+        }
     }
 
     imprimirDecoracao();
@@ -177,6 +181,7 @@ int main()
         printf("\n[1] Login");
         printf("\n[2] Cadastro");
         printf("\n[3] Ver a política de criação de identificadores e senhas");
+        printf("\n[4] Ver a política de acesso");
         printf("\n[0] Encerrar programa");
         imprimirDecoracao();
         printf("\n> Informe o número: ");
@@ -218,7 +223,13 @@ int main()
             imprimirDecoracao();
             printf("\n\t\t>> POLÍTICA DE IDENTIFICADORES E SENHAS <<\n\n");
             imprimirDecoracao();
-            mostrarPolitica();
+            mostrarPoliticaSenhas();
+            break;
+        case 4: //Ver política de acesso
+            imprimirDecoracao();
+            printf("\n\t\t\t>> POLÍTICA DE ACESSO <<\n\n");
+            imprimirDecoracao();
+            mostrarPoliticaAcesso();
             break;
         default:
             printf("\n# FALHA [OPÇÃO INVÁLIDA] - Você digitou uma opção inválida (%d), tente novamente!\n", operacao);
@@ -228,7 +239,7 @@ int main()
     return 0;
 }
 
-/**OK
+/**
  * Insere os dados padrão no arquivo de curso ou disciplina, o que for passado como parâmetro
  * @return 1 em caso de falha; 0 em caso de sucesso
  */
@@ -256,7 +267,7 @@ short int inserirDadosPadrao(char *arquivo)
     {
         printf("\n# ERRO - O arquivo passado como parâmetro não pode ser utilizado para essa função: %s\n", arquivo);
         printf("\n# Podem ser utilizados somente os arquivos %s e %s\n", arquivoCurso, arquivoDisciplina);
-        fclose(ponteiroArquivos);
+        fecharArquivo(ponteiroArquivos);
         return 1;
     }
     //Insere os dados padrão no arquivo
@@ -264,7 +275,7 @@ short int inserirDadosPadrao(char *arquivo)
     {
         printf("\n# ERRO - Problema para inserir os dados no arquivo %s\n", arquivo);
         perror("# - ");
-        fclose(ponteiroArquivos);
+        fecharArquivo(ponteiroArquivos);
         return 1;
     }
     else
@@ -272,11 +283,11 @@ short int inserirDadosPadrao(char *arquivo)
         printf("\n# SUCESSO - Dados padrão inseridos no arquivo %s\n", arquivo);
     }
 
-    fclose(ponteiroArquivos);
+    fecharArquivo(ponteiroArquivos);
     return 0;
 }
 
-/**OK
+/**
  * Busca no arquivo o último ID cadastrado e retorna o próximo ID a ser usado
  * @param arquivo é o char com nome do arquivo que deseja utilizar para verificar o próximo ID
  * @return valor do próximo ID a ser usado e 0 em caso de falha ao abrir o arquivo para leitura, 
@@ -298,13 +309,13 @@ int pegarProximoId(char *arquivo)
         //Lê as linhas até o final do arquivo, atribuindo o id da linha na variável id com formato inteiro
         fscanf(ponteiroArquivos, "%d | %[^\n]", &id, temp);
     }
-    fclose(ponteiroArquivos);
+    fecharArquivo(ponteiroArquivos);
 
     //O ID lido por último é o último ID cadastrado e será somado mais 1 e retornado para cadastrar o próximo
     return id + 1;
 }
 
-/**OK
+/**
  * Função para cadastrar novo usuário, solicita todos os dados ao usuário e insere no arquivo de dados dos usuários
  */
 void cadastrarUsuario()
@@ -338,11 +349,11 @@ void cadastrarUsuario()
         printf("\n# SUCESSO - Cadastro realizado!\n# Agora, realize login para acessar o sistema.\n");
     }
 
-    fclose(ponteiroArquivos); //Fecha o arquivo
+    fecharArquivo(ponteiroArquivos); //Fecha o arquivo
     limparEstruturaUsuario();
 }
 
-/**OK
+/**
  * Coletar dados do usuário, chame a função definindo o parâmetro no valor 1 no respectivo dado que deseja solicitar ao usuário
  */
 void coletarDados(short int nome, short int sobrenome, short int email, short int identificador, short int senha, short int papel)
@@ -429,7 +440,7 @@ void coletarDados(short int nome, short int sobrenome, short int email, short in
     if (identificador || senha)
     {
         imprimirDecoracao();
-        mostrarPolitica();
+        mostrarPoliticaSenhas();
     }
 
     //Solicita que o usuário crie um identificador
@@ -464,7 +475,7 @@ void coletarDados(short int nome, short int sobrenome, short int email, short in
     }
 }
 
-/**OK
+/**
  * Realizar a autenticação do usuário
  * @param ehLogin deve ser passado como 1 caso a chamada da função está sendo realizada para login e não somente autenticação, 
  * quando for login a função vai definir os dados do usuário, trazidos do arquivo, na estrutura
@@ -516,14 +527,14 @@ short int autenticar(short int ehLogin)
                 //Salvar o formato da linha do usuário autenticado
                 sprintf(u.linhaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
                 printf("\n\n# SUCESSO - Login realizado.\n\n");
-                fclose(ponteiroArquivos); //Fecha o arquivo
+                fecharArquivo(ponteiroArquivos); //Fecha o arquivo
                 return 1;
             }
             //Se não for login, a autenticação só poderá liberar o acesso caso o usuário autenticando seja o usuário que está logado
             else if (u.codigo == codigoArquivo)
             {
                 printf("\n\n# SUCESSO - Acesso autorizado.\n\n");
-                fclose(ponteiroArquivos); //Fecha o arquivo
+                fecharArquivo(ponteiroArquivos); //Fecha o arquivo
                 return 1;
             }
             //Caso o usuário que tentou autenticar não seja o que está logado
@@ -535,7 +546,7 @@ short int autenticar(short int ehLogin)
         }
     }
     //Se sair do loop é porque não autenticou por erro de login/senha
-    fclose(ponteiroArquivos);
+    fecharArquivo(ponteiroArquivos);
     /*Apenas se for autenticação para login, deve limpar os dados caso falhe a autenticação, 
     se for autenticação quando o usuário já está logado, não pode limpar os dados caso erre a senha.*/
     if (ehLogin)
@@ -545,10 +556,10 @@ short int autenticar(short int ehLogin)
     return 0;
 }
 
-/**OK
+/**
  * Imprime a política com as regras para criação de identificadores e senhas
  */
-void mostrarPolitica()
+void mostrarPoliticaSenhas()
 {
     printf("\n\t\tIDENTIFICADOR/LOGIN\n");
     printf("\n-Não pode ser utilizado nome, sobrenome ou email;");
@@ -564,7 +575,27 @@ void mostrarPolitica()
     printf("\n-Não pode conter caracteres que não sejam alfanuméricos (números e letras), especiais ou espaço.\n");
 }
 
-/**OK
+/**
+ * Imprime a política com as regras para acessos por papel
+ */
+void mostrarPoliticaAcesso()
+{
+    printf("\n\t\tCOORDENADOR\n");
+    printf("\n-Dados dos Estudantes: ver dados;");
+    printf("\n-Disciplina: ver descrição da disciplina, alterar descrição da disciplina, matricular estudante;");
+    printf("\n-Notas: ver notas, alterar notas.");
+    printf("\n\n\t\tPROFESSOR\n");
+    printf("\n-Dados dos Estudantes: ver dados;");
+    printf("\n-Disciplina: ver descrição da disciplina, alterar descrição da disciplina;");
+    printf("\n-Notas: ver notas, alterar notas.");
+    printf("\n\n\t\tESTUDANTE\n");
+    printf("\n-Dados dos Estudantes: ver dados*, alterar dados*;");
+    printf("\n-Disciplina: ver descrição da disciplina, matricular estudante*;");
+    printf("\n-Notas: ver notas*.");
+    printf("\n*Somente próprias informações\n");
+}
+
+/**
  * Transforma a String inteira para maiúscula ou minúscula e salva na própria variável, facilitando em comparação de dados
  * @param String A string que quer trocar para maiúscula ou minúscula
  * @param flag 1 para maiúscula; 0 para minúscula
@@ -596,7 +627,7 @@ char *alternarCapitalLetras(char *string, int flag)
     return string;
 }
 
-/**OK
+/**
  * Verifica se a string passada como parâmetro contém somente caracteres alfabéticos e se o tamanho está entre 2 e 50 letras
  * @return 1 caso a string seja válida; 0 caso string inválida
  */
@@ -623,7 +654,7 @@ short int validarStringPadrao(char *string)
     return 1;
 }
 
-/**OK
+/**
  * Verifica se a string passada como parâmetro contém formato permitido para e-mail
  * @return 1 caso a string seja válida; 0 caso string inválida
  */
@@ -649,7 +680,7 @@ short int validarStringEmail(char *string)
     return 1;
 }
 
-/**OK
+/**
  * Função para verificar se o identificador cumpre com a política
  * @param identificador é a string do identificador que deseja verificar se é válida
  * @return 1 em caso de identificador válido; 0 caso inválido.
@@ -703,16 +734,16 @@ short int validarIdentificador(char *identificador)
         {
             //Se entrar aqui o identificador já foi utilizado
             printf("\n# FALHA [IDENTIFICADOR INVÁLIDO] - Já está sendo utilizado!\n");
-            fclose(ponteiroArquivos);
+            fecharArquivo(ponteiroArquivos);
             return 0;
         }
     }
-    fclose(ponteiroArquivos); //Fecha o arquivo
+    fecharArquivo(ponteiroArquivos); //Fecha o arquivo
     //Se chegou até aqui, passou pelas validações, retorna 1 - true
     return 1;
 }
 
-/**OK
+/**
  * Função para verificar se a senha cumpre com a política de senhas
  * @param senha é a string da senha que quer validar
  * @return valor 1 em caso de senha válida; 0 caso inválida
@@ -816,7 +847,7 @@ short int validarSenha(char *senha)
     return 1;
 }
 
-/**OK
+/**
  * Gera o valor de salt e insere ele na variável salt do usuário atual
  */
 void gerarSalt()
@@ -851,7 +882,7 @@ void gerarSalt()
     u.salt[SALT_SIZE] = '\0';
 }
 
-/**OK
+/**
  * Criptografa a senha do usuário e insere o valor da senha criptografada na variável senhaCriptografada do usuário atual
  */
 void criptografarSenha()
@@ -869,7 +900,7 @@ void criptografarSenha()
     u.senhaCriptografada = crypt(u.senha, idSaltSenha);
 }
 
-/**OK
+/**
  * Zera os dados da estrutura do usuário para reutilização
  */
 void limparEstruturaUsuario()
@@ -1165,7 +1196,7 @@ void areaLogada()
     } while (1);
 }
 
-/**OK
+/**
  * Imprime os dados do usuário
  * @param idUsuario ID do usuário que se deseja exibir os dados
  */
@@ -1195,7 +1226,7 @@ void verDadosUsuario(int idUsuario)
                 break;
             }
         }
-        fclose(ponteiroArquivos);
+        fecharArquivo(ponteiroArquivos);
 
         //Se sair do loop e o idLido por último não for o do usuário que foi passado como parâmetro, significa que não encontrou o usuário buscado
         if (idLido != idUsuario)
@@ -1225,7 +1256,7 @@ void verDadosUsuario(int idUsuario)
     }
 }
 
-/**OK
+/**
  * Excluir os dados do usuário do arquivo de dados
  * @return 1 se o cadastro foi deletado; 0 se foi cancelado pelo usuário ou por falha no arquivo
  */
@@ -1257,12 +1288,9 @@ short int excluirDados()
         }
     }
     //Fecha os arquivos
-    if (fclose(ponteiroArquivos) || fclose(saida))
-    {
-        system("cls || clear");
-        printf("\n# ERRO - Ocorreu um erro ao fechar um arquivo necessário, o programa foi abortado.\n");
-        finalizarPrograma();
-    }
+    fecharArquivo(ponteiroArquivos);
+    fecharArquivo(saida);
+
     //Deleta o arquivo com os dados antigos
     if (remove(arquivoUsuarios))
     {
@@ -1282,7 +1310,7 @@ short int excluirDados()
     return 1;
 }
 
-/**OK
+/**
  * Apenas imprime as linhas de separação
  */
 void imprimirDecoracao()
@@ -1291,7 +1319,7 @@ void imprimirDecoracao()
     printf("\n*********************************************************************************\n");
 }
 
-/**OK
+/**
  *  Verifica se o arquivo passado como parâmetro pode ser criado/utilizado
  *  @param nomeArquivo: nome do arquivo que se deseja testar
  *  @return 1 caso o arquivo não possa ser acessado; 0 caso contrário
@@ -1304,11 +1332,11 @@ short int testarArquivo(char *nomeArquivo)
         printf("\n# ERRO - O arquivo '%s' não pode ser acessado, verifique.\n", nomeArquivo);
         return 1;
     }
-    fclose(arquivo);
+    fecharArquivo(arquivo);
     return 0;
 }
 
-/**OK
+/**
  * Disponibiliza um menu para o usuário escolher que dados do cadastro ele quer editar, e salva no arquivo de dados
  */
 void editarDadosUsuario()
@@ -1440,12 +1468,8 @@ void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtuali
     }
 
     //Fecha os arquivos
-    if (fclose(entrada) || fclose(saida))
-    {
-        system("cls || clear");
-        printf("\n# ERRO - Ocorreu um erro ao fechar um arquivo necessário, o programa foi abortado.\n");
-        finalizarPrograma();
-    }
+    fecharArquivo(entrada);
+    fecharArquivo(saida);
     //Deleta o arquivo com os dados antigos
     if (remove(arquivo))
     {
@@ -1463,7 +1487,7 @@ void atualizarLinhaArquivo(char *arquivo, char *linhaObsoleta, char *linhaAtuali
     printf("\n# SUCESSO - Os dados foram atualizados!\n");
 }
 
-/**OK
+/**
  * Lista todos os usuários de um grupo específico passado no parâmetro inteiro e dá opção de escolha ao usuário
  * @param idPapelProcurado 1-Coordenadores, 2-Professores ou 3-Estudantes
  * @return ID do usuário escolhido dentre os listados; 0 em caso de falha
@@ -1502,7 +1526,7 @@ int selecionarUsuario(short int idPapelProcurado)
             contador++;
         }
     }
-    fclose(ponteiroArquivos); //Fecha o arquivo
+    fecharArquivo(ponteiroArquivos); //Fecha o arquivo
 
     //Encerra a função se não haviam usuários cadastrados com o papel escolhido
     if (contador == 0)
@@ -1542,7 +1566,7 @@ int selecionarUsuario(short int idPapelProcurado)
     } while (1);
 }
 
-/**OK
+/**
  * Retorna o nome do papel com base no ID passado como parâmetro
  * @param idPapel é o ID do papel a ser descrito: 1-Coordenador, 2-Professor ou 3-Estudante
  * @return o nome descrito do papel
@@ -1560,7 +1584,7 @@ char *descreverNomePapel(short int idPapel)
     return "Estudante";
 }
 
-/**OK
+/**
  * Lista todos as disciplinas de um curso específico passado no parâmetro e solicita para o usuário escolher a desejada
  * @param idCurso o ID do curso para listar as disciplinas
  * @return ID da disciplina escolhida dentre as listadas; 0 em caso de falha
@@ -1596,7 +1620,7 @@ int selecionarDisciplina(short int idCurso)
             contador++;
         }
     }
-    fclose(ponteiroArquivos); //Fecha arquivo
+    fecharArquivo(ponteiroArquivos); //Fecha arquivo
 
     //Encerra a função se não haviam disciplinas cadastrados no curso escolhido
     if (contador == 0)
@@ -1636,7 +1660,7 @@ int selecionarDisciplina(short int idCurso)
     } while (1);
 }
 
-/**OK
+/**
  * Pausa no programa para que o usuário possa ler mensagens antes de limpar a tela
  */
 void pausarPrograma()
@@ -1650,7 +1674,7 @@ void pausarPrograma()
     setbuf(stdin, NULL);
 }
 
-/**OK
+/**
  * Essa função é capaz de exibir a descrição da disciplina, alterar a descrição da disciplina e 
  * alterar o professor da disciplina
  * @param idDisciplina ID da disciplina que deseja realizar uma das operações
@@ -1660,6 +1684,10 @@ void pausarPrograma()
  */
 void operarDisciplina(int idDisciplina, short int verDescricao, short int alterarDescricao, short int alterarProfessor)
 {
+    //Se algum ID passado for 0 é porque houve uma falha na escolha da disciplina, então nem executa a função
+    if(idDisciplina == 0)
+        return;
+
     //Teste do arquivo
     if (testarArquivo(arquivoDisciplina))
         return;
@@ -1676,7 +1704,7 @@ void operarDisciplina(int idDisciplina, short int verDescricao, short int altera
         if (d.codigo == idDisciplina)
         {
             //Fechar o arquivo já que não é mais necessário
-            fclose(ponteiroArquivos);
+            fecharArquivo(ponteiroArquivos);
 
             if (verDescricao)
                 printf("\n# Descrição da disciplina %s\n¬ \"%s\"\n", d.nome, d.descricao);
@@ -1721,12 +1749,12 @@ void operarDisciplina(int idDisciplina, short int verDescricao, short int altera
             return;
         }
     }
-    fclose(ponteiroArquivos); //Fecha arquivo
+    fecharArquivo(ponteiroArquivos); //Fecha arquivo
     //Se chegar aqui não encontrou a disciplina selecionada
     printf("\n# FALHA - A disciplina solicitada não foi localizada\n");
 }
 
-/**OK
+/**
  * Matricula o estudante com ID passado no primeiro parâmetro na disciplina passada com ID no segundo parâmetro, 
  * criando o registro do usuário no arquivo de notas
  * @param idEstudante é o ID do estudante que deseja matricular
@@ -1734,6 +1762,10 @@ void operarDisciplina(int idDisciplina, short int verDescricao, short int altera
  */
 void matricularEstudanteDisciplina(int idEstudante, int idDisciplina)
 {
+    //Se algum ID passado for 0 é porque houve uma falha na escolha do estudante ou disciplina, então nem executa a função
+    if(idEstudante == 0 || idDisciplina == 0)
+        return;
+
     //Validação do arquivo
     if (testarArquivo(arquivoNotas))
         return;
@@ -1750,12 +1782,12 @@ void matricularEstudanteDisciplina(int idEstudante, int idDisciplina)
         if (n.idEstudante == idEstudante && n.idDisciplina == idDisciplina)
         {
             //Estudante já está matriculado na disciplina
-            fclose(ponteiroArquivos); //Fechar o arquivo já que não é mais necessário
+            fecharArquivo(ponteiroArquivos); //Fechar o arquivo já que não é mais necessário
             printf("\n# FALHA - Esse estudante já está matriculado nessa disciplina!\n");
             return;
         }
     }
-    fclose(ponteiroArquivos); //Fecha arquivo
+    fecharArquivo(ponteiroArquivos); //Fecha arquivo
 
     /*Inicia o processo de matrícula do aluno*/
     char linhaNota[MAX];                       //Variável que guarda a linha com os dados para inserir no arquivo de notas
@@ -1776,10 +1808,10 @@ void matricularEstudanteDisciplina(int idEstudante, int idDisciplina)
         printf("\n# SUCESSO - Matrícula efetuada!\n");
     }
 
-    fclose(ponteiroArquivos); //Fecha o arquivo
+    fecharArquivo(ponteiroArquivos); //Fecha o arquivo
 }
 
-/**OK
+/**
  * Essa função pode exibir e/ou alterar as notas de determinado estudante
  * @param idEstudante ID do estudante que deseja realizar uma das operações
  * @param idDisciplina ID da disciplina que deseja realizar uma das operações
@@ -1788,6 +1820,10 @@ void matricularEstudanteDisciplina(int idEstudante, int idDisciplina)
  */
 void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short int alterarNotas)
 {
+    //Se algum ID passado for 0 é porque houve uma falha na escolha do estudante ou disciplina, então nem executa a função
+    if(idEstudante == 0 || idDisciplina == 0)
+        return;
+    
     //Teste do arquivo
     if (testarArquivo(arquivoNotas))
         return;
@@ -1802,7 +1838,7 @@ void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short in
         //Se o ID do estudante da linha é igual ao ID do estudante que foi passado no parâmetro e o ID da disciplina igual ao ID da disciplina no parâmetro
         if (n.idEstudante == idEstudante && n.idDisciplina == idDisciplina)
         {
-            fclose(ponteiroArquivos); //Fechar o arquivo já que não é mais necessário
+            fecharArquivo(ponteiroArquivos); //Fechar o arquivo já que não é mais necessário
 
             //Se a flag ver notas está setada, vai exibir as notas do estudante solicitado
             if (verNotas)
@@ -1898,13 +1934,13 @@ void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short in
             return;
         }
     }
-    fclose(ponteiroArquivos); //Fecha arquivo
+    fecharArquivo(ponteiroArquivos); //Fecha arquivo
 
     //Se chegar aqui não encontrou a linha com o estudante e disciplina solicitados
     printf("\n# ERRO - Estudante não está matriculado na disciplina solicitada.\n");
 }
 
-/**OK
+/**
  * Realiza a validação da nota passada no parâmetro, verificando se contém vírgula, seu tamanho, formato e intervalo
  * @param nota é a nota a ser verificada em formato string
  * @return 1 caso a nota passe pelos testes; 0 caso seja inválida
@@ -1954,4 +1990,18 @@ void finalizarPrograma()
     limparEstruturaUsuario();
     printf("\n# SISTEMA FINALIZADO.\n");
     exit(0);
+}
+
+/**
+ * Fecha o arquivo verificando se não houve erro ao fechar, se houver encerra o programa para prevenir problemas posteriores
+ */
+void fecharArquivo(FILE *arquivo)
+{
+    if (fclose(arquivo))
+    {
+        system("cls || clear");
+        printf("\n# ERRO - Ocorreu um erro ao fechar um arquivo necessário, o programa foi abortado para prevenir mais erros.");
+        printf("\n# Contate o desenvolvedor para verificar o problema.");
+        finalizarPrograma();
+    }
 }
