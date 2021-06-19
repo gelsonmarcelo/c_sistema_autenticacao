@@ -346,7 +346,7 @@ void cadastrarUsuario()
     }
     else
     {
-        printf("\n# SUCESSO - Cadastro realizado!\n# Agora, realize login para acessar o sistema.\n");
+        printf("\n# SUCESSO - Cadastro realizado: realize login para acessar o sistema.\n");
     }
 
     fecharArquivo(ponteiroArquivos); //Fecha o arquivo
@@ -683,7 +683,7 @@ short int validarStringEmail(char *string)
 /**
  * Função para verificar se o identificador cumpre com a política
  * @param identificador é a string do identificador que deseja verificar se é válida
- * @return 1 em caso de identificador válido; 0 caso inválido.
+ * @return 1 em caso de identificador válido; 0 caso inválido
  */
 short int validarIdentificador(char *identificador)
 {
@@ -1128,10 +1128,11 @@ void areaLogada()
                         imprimirDecoracao();
                         printf("\n\t\t>> ALTERAR NOTAS DOS ESTUDANTES <<\n");
                         imprimirDecoracao();
-                        printf("\n# INFO - Selecione  disciplina e o estudante para alterar as notas...\n");
+                        printf("\n# INFO - Selecione a disciplina e o estudante para alterar as notas...\n");
                         operarNotas(selecionarUsuario(3), selecionarDisciplina(1), 1, 1);
                         printf("\n# <?> - Alterar notas de outros estudantes? [s/n]\n>");
                         setbuf(stdin, NULL);
+                        getchar();
                         if (getchar() != 's')
                             break; //Usuário deseja voltar ao menu principal, sai do loop
                         setbuf(stdin, NULL);
@@ -1202,58 +1203,45 @@ void areaLogada()
  */
 void verDadosUsuario(int idUsuario)
 {
-    if (idUsuario != u.codigo)
+    //Teste do arquivo
+    if (testarArquivo(arquivoUsuarios))
+        return;
+
+    //Variáveis para guardar os dados recebidos do arquivo
+    char nome[MAX_DADOS], sobrenome[MAX_DADOS], email[MAX_DADOS], identificador[MAX_IDENTIFICADOR], salt[SALT_SIZE + 1], senhaCriptografada[120];
+    int idPapel = 0, idLido = 0;
+
+    ponteiroArquivos = fopen(arquivoUsuarios, "r"); //Abre o arquivo
+
+    //Loop que passa pelas linhas do arquivo coletando os dados dos usuários e quando encontra o ID do usuário passado como parâmetro, para de procurar
+    while (!feof(ponteiroArquivos))
     {
-        //Teste do arquivo
-        if (testarArquivo(arquivoUsuarios))
-            return;
+        //Lê as linhas até o final do arquivo, atribuindo os dados nas variáveis
+        fscanf(ponteiroArquivos, "%d | %s | %s | %s | %s | %s | %s | %d\n", &idLido, identificador, salt, senhaCriptografada, nome, sobrenome, email, &idPapel);
 
-        //Variáveis para guardar os dados recebidos do arquivo
-        char nome[MAX_DADOS], sobrenome[MAX_DADOS], email[MAX_DADOS], identificador[MAX_IDENTIFICADOR], salt[SALT_SIZE + 1], senhaCriptografada[120];
-        int idPapel = 0, idLido = 0;
-
-        ponteiroArquivos = fopen(arquivoUsuarios, "r"); //Abre o arquivo
-
-        //Loop que passa pelas linhas do arquivo coletando os dados dos usuários e quando encontra o ID do usuário passado como parâmetro, para de procurar
-        while (!feof(ponteiroArquivos))
+        //Se encontrar a linha do ID do usuário procurado, encerra o loop
+        if (idLido == idUsuario)
         {
-            //Lê as linhas até o final do arquivo, atribuindo os dados nas variáveis
-            fscanf(ponteiroArquivos, "%d | %s | %s | %s | %s | %s | %s | %d\n", &idLido, identificador, salt, senhaCriptografada, nome, sobrenome, email, &idPapel);
-
-            //Se encontrar a linha do ID do usuário procurado, encerra o loop
-            if (idLido == idUsuario)
-            {
-                break;
-            }
+            break;
         }
-        fecharArquivo(ponteiroArquivos);
-
-        //Se sair do loop e o idLido por último não for o do usuário que foi passado como parâmetro, significa que não encontrou o usuário buscado
-        if (idLido != idUsuario)
-        {
-            printf("\n# ERRO - Os dados do usuário selecionado não puderam ser localizados");
-            return;
-        }
-
-        //Se chegar aqui exibe os dados que estão nas variáveis, que são referentes ao usuário procurado
-        printf("\n¬ Código: %d", idUsuario);
-        printf("\n¬ Nome Completo: %s %s", nome, sobrenome);
-        printf("\n¬ E-mail: %s", email);
-        printf("\n¬ Login: %s", identificador);
-        printf("\n¬ Salt: %s", salt);
-        printf("\n¬ Senha criptografada: %s", senhaCriptografada);
-        printf("\n¬ Papel: %s\n", descreverNomePapel(idPapel));
     }
-    else //Se forem os dados do próprio usuário logado já estão salvos nas variáveis do programa
+    fecharArquivo(ponteiroArquivos);
+
+    //Se sair do loop e o idLido por último não for o do usuário que foi passado como parâmetro, significa que não encontrou o usuário buscado
+    if (idLido != idUsuario)
     {
-        printf("\n¬ Código: %d", idUsuario);
-        printf("\n¬ Nome Completo: %s %s", u.nome, u.sobrenome);
-        printf("\n¬ E-mail: %s", u.email);
-        printf("\n¬ Login: %s", u.identificador);
-        printf("\n¬ Salt: %s", u.salt);
-        printf("\n¬ Senha criptografada: %s", u.senhaCriptografada);
-        printf("\n¬ Papel: %s\n", descreverNomePapel(u.papel));
+        printf("\n# ERRO - Os dados do usuário selecionado não puderam ser localizados");
+        return;
     }
+
+    //Se chegar aqui exibe os dados que estão nas variáveis, que são referentes ao usuário procurado
+    printf("\n¬ Código: %d", idUsuario);
+    printf("\n¬ Nome Completo: %s %s", nome, sobrenome);
+    printf("\n¬ E-mail: %s", email);
+    printf("\n¬ Login: %s", identificador);
+    printf("\n¬ Salt: %s", salt);
+    printf("\n¬ Senha criptografada: %s", senhaCriptografada);
+    printf("\n¬ Papel: %s\n", descreverNomePapel(idPapel));
 }
 
 /**
@@ -1347,12 +1335,14 @@ void editarDadosUsuario()
 
     char linhaAtualizadaUsuario[MAX]; //Essa string serve para guardar os dados atualizados do usuário, e posteriormente ser passada na função
     int operacao = 0;                 //Recebe a entrada que o usuário digitar
+    short int atualizar = 0;          //Flag que será usada para dizer se o programa pode ou não atualizar os dados ao sair do switch
 
     //Menu de opções
     do
     {
         pausarPrograma();
         operacao = '\0'; //Limpar a variável para evitar lixo de memória nas repetições
+        atualizar = 1;   //Se não houver autenticação sempre permite atualização
         system("cls || clear");
 
         imprimirDecoracao();
@@ -1386,53 +1376,47 @@ void editarDadosUsuario()
             finalizarPrograma();
         case 1: //Coleta o nome
             coletarDados(1, 0, 0, 0, 0, 0);
-            //Preparar linha com dados do usuário para inserir no arquivo
-            sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
-            atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
-            //Atualizar a string da linha que está no arquivo agora
-            strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
             break;
         case 2: //Coleta o sobrenome
             coletarDados(0, 1, 0, 0, 0, 0);
-            sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
-            atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
-            strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
             break;
         case 3: //Coleta o e-mail
             coletarDados(0, 0, 1, 0, 0, 0);
-            sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
-            atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
-            strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
             break;
         case 4: //Solicita autenticação e coleta o identificador
             if (autenticar(0))
             {
                 coletarDados(0, 0, 0, 1, 0, 0);
-                sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
-                atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
-                strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
+                break;
             }
+            atualizar = 0;
             break;
         case 5: //Solicita autenticação e coleta a nova senha
             if (autenticar(0))
             {
                 coletarDados(0, 0, 0, 0, 1, 0);
-                sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
-                atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
-                strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
+                break;
             }
+            atualizar = 0;
             break;
         case 6: //Coleta o papel
             coletarDados(0, 0, 0, 0, 0, 1);
-            sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
-            atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
-            strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
             break;
         case 7: //Sair da função
             return;
         default:
             printf("\n# FALHA [OPÇÃO INVÁLIDA] - Você digitou uma opção inválida, tente novamente!\n");
             break;
+        }
+
+        //Verifica se pode atualizar os dados do usuário com os dados coletados
+        if (atualizar)
+        {
+            //Preparar linha com dados do usuário para inserir no arquivo
+            sprintf(linhaAtualizadaUsuario, "%d | %s | %s | %s | %s | %s | %s | %d\n", u.codigo, u.identificador, u.salt, u.senhaCriptografada, u.nome, u.sobrenome, u.email, u.papel);
+            atualizarLinhaArquivo(arquivoUsuarios, u.linhaUsuario, linhaAtualizadaUsuario);
+            //Atualizar a string da linha que está no arquivo agora
+            strcpy(u.linhaUsuario, linhaAtualizadaUsuario);
         }
     } while (1);
 }
@@ -1685,7 +1669,7 @@ void pausarPrograma()
 void operarDisciplina(int idDisciplina, short int verDescricao, short int alterarDescricao, short int alterarProfessor)
 {
     //Se algum ID passado for 0 é porque houve uma falha na escolha da disciplina, então nem executa a função
-    if(idDisciplina == 0)
+    if (idDisciplina == 0)
         return;
 
     //Teste do arquivo
@@ -1763,7 +1747,7 @@ void operarDisciplina(int idDisciplina, short int verDescricao, short int altera
 void matricularEstudanteDisciplina(int idEstudante, int idDisciplina)
 {
     //Se algum ID passado for 0 é porque houve uma falha na escolha do estudante ou disciplina, então nem executa a função
-    if(idEstudante == 0 || idDisciplina == 0)
+    if (idEstudante == 0 || idDisciplina == 0)
         return;
 
     //Validação do arquivo
@@ -1821,9 +1805,9 @@ void matricularEstudanteDisciplina(int idEstudante, int idDisciplina)
 void operarNotas(int idEstudante, int idDisciplina, short int verNotas, short int alterarNotas)
 {
     //Se algum ID passado for 0 é porque houve uma falha na escolha do estudante ou disciplina, então nem executa a função
-    if(idEstudante == 0 || idDisciplina == 0)
+    if (idEstudante == 0 || idDisciplina == 0)
         return;
-    
+
     //Teste do arquivo
     if (testarArquivo(arquivoNotas))
         return;
